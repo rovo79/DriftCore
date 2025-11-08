@@ -1,2 +1,2 @@
 # DriftCore
-The intelligent automation core for Drupal — bridging agents, context, and execution.
+An MCP server that empowers Drupal developers by automating repetitive tasks, scaffolding modules/themes, and assisting with Core contributions.”
