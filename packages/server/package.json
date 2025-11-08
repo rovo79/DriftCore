@@ -1,0 +1,18 @@
+{
+  "name": "@driftcore/server",
+  "version": "0.1.0",
+  "description": "Baseline MCP server for DriftCore",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start:stdio": "node dist/bin/stdio.js",
+    "start:http": "node dist/bin/http.js"
+  },
+  "dependencies": {
+    "@types/node": "^20.11.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "driftcore-vscode-extension",
+  "displayName": "DriftCore Tools",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "publisher": "driftcore",
+  "activationEvents": ["onCommand:driftcore.hello"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "driftcore.hello",
+        "title": "DriftCore: Hello"
+      }
+    ]
+  }
+}
