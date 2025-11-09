@@ -1,8 +1,14 @@
 # RFC-0001: DriftCore MVP
 
+**Status:** Proposed
+
 ## Summary
 
 This RFC defines the vision, boundaries, and delivery milestones for the DriftCore minimum viable product. The MVP empowers automation agents to introspect Drupal metadata, execute vetted Drush commands, and iterate safely inside a sandboxed Drupal 11 environment while feeding actionable guidance back to a copilot interface.
+
+## Problem
+
+Drupal automation today requires a patchwork of ad-hoc scripts, disconnected metadata dumps, and manual Drush usage across teams. This fragmentation slows experimentation, makes it difficult for agents to reason about a site’s current state, and introduces risk when replicating production workflows in local sandboxes. DriftCore centralizes metadata access, tool execution, and sandbox orchestration so automation agents can follow a cohesive workflow.
 
 ## Goals
 
