@@ -1,21 +1,36 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ServerState } from "../types.js";
 
+function sendJson(res: ServerResponse, status: number, payload: unknown) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(payload, null, 2));
+}
+
 export function httpTransport(
   req: IncomingMessage,
   res: ServerResponse,
   state: ServerState
 ) {
   state.logger.info?.(`HTTP ${req.method} ${req.url}`);
-  res.setHeader("Content-Type", "application/json");
 
   if (req.method === "GET" && req.url === "/health") {
-    res.writeHead(200);
-    res.end(JSON.stringify({ status: "ok", tools: state.tools.length }));
+    sendJson(res, 200, {
+      status: "ok",
+      tools: state.tools.length,
+      resources: state.resources.length,
+    });
     return;
   }
 
-  // TODO: Implement protocol-compliant HTTP transport routing.
-  res.writeHead(202);
-  res.end(JSON.stringify({ message: "MCP HTTP transport stub" }));
+  if (req.method === "GET" && req.url === "/resources") {
+    sendJson(res, 200, { resources: state.resources });
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/tools") {
+    sendJson(res, 200, { tools: state.tools });
+    return;
+  }
+
+  sendJson(res, 404, { error: "Not Found" });
 }
