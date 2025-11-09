@@ -84,19 +84,23 @@ This RFC defines the vision, boundaries, and delivery milestones for the DriftCo
 - Agent-executed code runs inside snapshot-based microVMs to guarantee rollback after each workflow iteration.
 - Telemetry webhooks require signed requests to prevent command injection through observability pipelines.
 
-## Developer Experience Expectations
+## Developer Experience & Observability Expectations
+
+### Developer Experience
 
 - Publish TypeScript SDKs with inline JSDoc generated from MCP resource metadata for rich autocompletion.
 - Provide verbose logging toggles (`DEBUG=driftcore:*`) that cover MCP transport, tool execution, and sandbox orchestration.
 - Document common troubleshooting scenarios and CLI recipes in `docs/guides`, surfaced via the `docs.guides` resource.
 - Maintain examples in `examples/` demonstrating how to combine resources and tools for each flagship workflow.
+- Offer project generators and scaffolds (`create-driftcore-app`) that encode recommended defaults for new adopters.
 
-## Observability Expectations
+### Observability
 
 - Expose Prometheus-compatible metrics from the agent runner (workflow duration, tool error rates, sandbox resets).
 - Emit structured audit logs for every tool invocation, linked back to copilot sessions for human review.
 - Capture sandbox snapshots and workflow transcripts as artifacts accessible through the copilot UI.
 - Provide alerting defaults for prolonged workflow runtimes, repeated sandbox rollbacks, and failed QA chains.
+- Maintain Grafana-ready dashboards and runbooks that highlight MCP latency spikes and sandbox health regressions.
 
 ## Testing Strategy
 
