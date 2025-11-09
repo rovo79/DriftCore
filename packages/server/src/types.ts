@@ -1,11 +1,28 @@
+export interface MCPResource {
+  id: string;
+  name: string;
+  description: string;
+  source?: string;
+  mimeType: string;
+  data: unknown;
+}
+
+export interface MCPTool {
+  name: string;
+  description: string;
+  command: string;
+  args?: string[];
+  examples?: string[];
+}
+
 export interface MCPServerOptions {
-  resources?: Array<Record<string, unknown>>;
-  tools?: Array<Record<string, unknown>>;
+  resources?: MCPResource[];
+  tools?: MCPTool[];
   logger?: Pick<Console, "info" | "error" | "warn">;
 }
 
 export interface ServerState {
-  resources: Array<Record<string, unknown>>;
-  tools: Array<Record<string, unknown>>;
+  resources: MCPResource[];
+  tools: MCPTool[];
   logger: Pick<Console, "info" | "error" | "warn">;
 }

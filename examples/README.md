@@ -1,7 +1,7 @@
 # DriftCore Examples
 
-This directory will host runnable examples demonstrating the MCP server, agent runner,
-and extension integrations.
+This directory hosts runnable examples demonstrating the MCP server, agent runner, and Drupal integrations.
 
-- TODO: Add walkthrough for schema resource exploration.
-- TODO: Add sandbox execution showcase.
+## Available Examples
+
+- [Drupal 11 Sandbox](./drupal-sandbox/README.md) – Docker Compose environment that provisions Drupal, MariaDB, and pre-seeded configuration matching the MCP resources exposed by `@driftcore/server`.

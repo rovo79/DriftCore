@@ -5,14 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --pretty --noEmit",
+    "test": "npm run build && node --test dist/__tests__",
+    "integration": "npm run build && node dist/integration/smoke.js",
     "start:stdio": "node dist/bin/stdio.js",
     "start:http": "node dist/bin/http.js"
   },
   "dependencies": {
-    "@types/node": "^20.11.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "typescript": "^5.3.3"
   }
 }

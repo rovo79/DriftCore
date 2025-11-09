@@ -1,0 +1,9 @@
+uuid: 00000000-0000-0000-0000-000000000000
+name: 'DriftCore Sandbox'
+mail: admin@example.com
+slogan: 'Composable automation for Drupal'
+page:
+  403: ''
+  404: ''
+  front: /node
+langcode: en
