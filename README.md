@@ -98,4 +98,131 @@ Some examples of the kind of workflows DriftCore is meant to support:
 - **Upgrade helper**  
   - Inspect core and contrib versions.  
   - Suggest upgrade steps.  
-  - Run Composer updates an
+  - Run Composer updates and Drush database updates behind tools.  
+  - Run tests and report back.
+
+- **Feature module scaffolding**  
+  - Read existing custom modules and project conventions.  
+  - Propose a new module structure.  
+  - Generate boilerplate code and config.  
+  - Wire it into routing, permissions, and services.
+
+- **Config hygiene and sync**  
+  - List configuration changes between environments.  
+  - Help curate which changes should be exported or imported.  
+  - Run `cim` or `cex` through safe tools and report status.
+
+- **Code review and refactor**  
+  - Analyze a specific module or theme directory.  
+  - Suggest refactors that respect the actual project layout and versions.  
+  - Apply changes as patches and run checks.
+
+---
+
+## Architecture overview
+
+High level view:
+
+1. **DriftCore service**  
+   Runs alongside your Drupal project (for example on a dev machine or in a container) and exposes an MCP server endpoint.
+
+2. **Connectors to the project**  
+   Adapters that know how to:
+   - Read composer.json, Drush output, and config directories.
+   - Discover modules and themes.
+   - Execute Drush and Composer with constraints.
+
+3. **MCP tools and resources**  
+   DriftCore defines a set of tools and resources surfaced through MCP, which an AI client can call in sequence to carry out tasks.
+
+4. **Client**  
+   Any MCP compatible AI client (such as an IDE extension or chat interface) connects to DriftCore and orchestrates tools using your prompts and workflows.
+
+Concrete implementation details and APIs are still evolving, but this is the shape the project is moving toward.
+
+---
+
+## Relationship to the Drupal MCP module
+
+The official Drupal MCP module and DriftCore should be seen as **complementary**:
+
+- **Drupal MCP module**  
+  - Installed inside Drupal.  
+  - Exposes entities, Views, JSON:API, Drush, and AI tools to MCP.  
+  - Aims to make a Drupal site “AI ready” for a wide range of use cases.
+
+- **DriftCore**  
+  - Runs next to the Drupal codebase in the dev environment.  
+  - Focuses on project structure, code, and dev workflows.  
+  - Aims to make AI actually effective as a Drupal developer and site builder.
+
+You can reasonably use both: DriftCore while building and maintaining the site, and the Drupal MCP module for live site automation and content workflows.
+
+---
+
+## Getting started (early preview)
+
+This is intentionally light for now because the internals are still changing. The rough flow looks like:
+
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/rovo79/DriftCore.git
+   cd DriftCore
+   ```
+
+2. Install dependencies
+   Use the package manager you prefer for this repo (for example):
+   ```bash
+   npm install
+   # or
+   pnpm install
+   # or
+   yarn install
+   ```
+
+3. Check package.json for the actual scripts and tooling in use.
+   Run the dev server
+   ```bash
+   npm run dev
+   ```
+   or the equivalent script defined in `package.json`.
+
+4. Point your MCP compatible client at the DriftCore MCP endpoint
+   Exact transport details (stdio vs http) are still being finalized. For now, consult the repository documentation or examples as they are added.
+
+---
+
+## Roadmap
+Short term goals:
+- Define and stabilize the initial set of MCP tools:
+  - Drush inspection commands (status, pml, cr)
+  - Composer inspection commands (outdated, audit)
+- Implement project_manifest and related resources for project context.
+- Add a simple “create custom module skeleton” blueprint.
+- Document how to connect a popular MCP client to a local DriftCore instance.
+
+Mid term goals:
+- Expand the Drush and Composer tool surface with safe write operations.
+- Add config aware workflows (export, import, diff) with dry run support.
+- Provide example agent prompts and flows for:
+  - Upgrade assistance
+  - Feature creation
+  - Code review
+
+Longer term ideas:
+- Integration with the official Drupal MCP module to inspect or sync config and content remotely.
+- Opinionated presets for different project profiles (single site, multi site, headless, etc).
+- Test and validation harnesses for AI generated changes.
+
+---
+
+## Contributing
+DriftCore is very early, and contributions at the level of architecture discussions, use case proposals, and small experimental PRs are all welcome.
+
+If you are a Drupal developer who wants a better AI dev experience, feedback on what would actually help you day to day is especially valuable.
+
+---
+
+License
+MIT
