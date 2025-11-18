@@ -68,6 +68,18 @@ const exportedConfiguration = {
   },
 };
 
+const projectManifestTemplate = {
+  schema_version: "0.1.0",
+  drupal_root: "<configured drupalRoot>",
+  drupal_core_version: null,
+  project_type: null,
+  composer: {
+    status: "missing",
+  },
+  custom_modules: [],
+  custom_themes: [],
+};
+
 export function listSchemaResources(): MCPResource[] {
   return [
     {
@@ -85,6 +97,15 @@ export function listSchemaResources(): MCPResource[] {
       source: "drupal:config:sync",
       mimeType: "application/json",
       data: exportedConfiguration,
+    },
+    {
+      id: "project_manifest",
+      name: "Drupal project manifest",
+      description:
+        "Summarised Drupal project context including core version, Composer dependencies, and custom modules/themes.",
+      source: "drupal:project_manifest",
+      mimeType: "application/json",
+      data: projectManifestTemplate,
     },
   ];
 }

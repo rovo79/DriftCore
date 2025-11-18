@@ -191,3 +191,10 @@ Rules for any agent using DriftCore v0.1:
 ## 6. Example agent persona
 
 Here is an example of how you might configure an ag
+
+## Active Technologies
+- TypeScript 5.x targeting Node.js 20 LTS + Node.js standard library (`http`, `readline`), `yargs` for CLI argument parsing, TypeScript toolchain (001-driftcore-1-single)
+- N/A (no persistent storage; configuration via JSON file only) (001-driftcore-1-single)
+
+## Recent Changes
+- 001-driftcore-1-single: Added TypeScript 5.x targeting Node.js 20 LTS + Node.js standard library (`http`, `readline`), `yargs` for CLI argument parsing, TypeScript toolchain
