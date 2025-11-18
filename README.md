@@ -1,115 +1,101 @@
 # DriftCore
 
-DriftCore is an open-source Model Context Protocol (MCP) platform that streamlines Drupal development. The project combines a self-hosted MCP server with an agent runner that can connect to LLM-based copilots. Together they automate repetitive tasks, generate scaffolding for modules and themes, and provide guided workflows for contributing back to Drupal Core.
+DriftCore is an MCP powered dev harness for Drupal projects. It runs alongside your repo and toolchain and gives AI agents structured access to your project context, Drush, Composer, and configuration workflows so they can actually help build and maintain Drupal sites instead of guessing.
 
-## Project Goals
-- Accelerate Drupal 11 site building by automating boilerplate creation and configuration.
-- Provide contextual helpers that translate between Drupal APIs and natural language prompts.
-- Offer a local, privacy-friendly alternative to hosted AI assistants while remaining compatible with standard MCP clients.
-- Encourage contributions to Drupal Core by lowering the barrier to reproducing issues, writing patches, and drafting merge requests.
+> Status: experimental, early stage. Interfaces and structure are still in flux.
 
-## Architecture Overview
-DriftCore is composed of two primary components that communicate via the MCP specification:
+---
 
-1. **MCP Server** (`packages/server/`)
-   - Exposes Drupal-aware tools such as module scaffolding, configuration generation, and automated patch application.
-   - Interfaces with the sample Drupal 11 environment through a PHP bridge and a task queue.
-   - Publishes structured prompts, file diffs, and run logs that MCP clients can consume.
+## What DriftCore is
 
-2. **Agent Runner** (`packages/agent-runner/`)
-   - Provides a CLI and daemon mode for connecting LLM copilots (for example, Claude Desktop or VS Code extensions) to the DriftCore MCP server.
-   - Manages authentication, rate limiting, and long-running tasks initiated by the server.
-   - Hosts reusable prompt templates and conversation state to keep context synchronized between the user and the server.
+DriftCore is for Drupal developers and site builders who want AI assistants that understand a **real project**, not just generic Drupal examples.
 
-The agent runner initiates the MCP session and relays requests from the connected copilot to the server. The server performs Drupal-aware operations and returns structured responses that the agent runner forwards back to the client. Both components are packaged as Docker images to simplify deployment.
+At a high level, DriftCore:
 
-A high-level sequence diagram:
+- Sits next to a Drupal codebase, not inside Drupal.
+- Reads and exposes project context (core version, modules, file layout, config locations).
+- Bridges AI tooling into Drush, Composer, and other CLI commands in a controlled way.
+- Provides opinionated scaffolds and blueprints for common Drupal patterns.
+- Speaks the Model Context Protocol (MCP), so any MCP compatible AI client can connect.
 
-```text
-Copilot Client <-> Agent Runner <-> DriftCore MCP Server <-> Drupal 11 Environment
-```
+The goal is to make it possible for an AI agent to:
 
-## Prerequisites
-Before working with DriftCore ensure you have:
+- Inspect the actual state of a project.
+- Propose concrete changes (code, config, dependencies).
+- Run checks and commands.
+- Iterate safely, instead of hallucinating module structure from thin air.
 
-- Git 2.40+
-- Node.js 20+ and pnpm 8+
-- Docker 24+ and Docker Compose plugin
-- PHP 8.3+ with Composer 2.6+
-- Make (GNU make 4+)
-- Access to an OpenAI-compatible or Anthropic-compatible LLM API key for integration tests
+---
 
-## Local Development Setup
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/DriftCore.git
-   cd DriftCore
-   ```
+## What DriftCore is not
 
-2. **Install JavaScript dependencies**
-   ```bash
-   pnpm install --frozen-lockfile
-   ```
+To avoid confusion with related work:
 
-3. **Bootstrap the MCP server**
-   ```bash
-   pnpm --filter server build
-   pnpm --filter server dev
-   ```
+- DriftCore is **not** a generic “MCP server for any Drupal site”.
+- DriftCore does **not** run inside Drupal as a module.
+- DriftCore is **not** focused on content editors or live site management.
+- DriftCore does **not** try to replace the official Drupal MCP module that exposes entities, JSON:API, Views, and Drupal AI tools.
 
-4. **Run the agent runner locally**
-   ```bash
-   pnpm --filter agent-runner build
-   pnpm --filter agent-runner start
-   ```
+If you want an MCP endpoint on a running Drupal site for content and site management, you should look at the Drupal MCP module. DriftCore is aimed at the **developer experience around a specific project**.
 
-### Sample Drupal 11 Environment
-DriftCore ships with a Docker-based Drupal 11 sandbox that mirrors the production toolchain used in CI. Start it with:
+---
 
-```bash
-make drupal-env
-```
+## Core ideas
 
-This command provisions containers for:
+### Project aware
 
-- Drupal 11 (PHP-FPM + Nginx)
-- MariaDB 10.11
-- Redis for caching
-- Mailhog for email testing
+DriftCore is designed to understand your project as it actually exists on disk and on the dev stack.
 
-Access the site at http://localhost:8080 once the containers are healthy. Default credentials are `admin` / `admin`. Rebuild the environment with `make drupal-reset` to wipe the database and re-import configuration. Logs are available under `docker/logs/`.
+Examples of the sort of context it will expose as MCP resources:
 
-### Configuration
-- Copy `packages/server/.env.example` to `.env` and update secrets.
-- Set `MCP_SERVER_URL` in `packages/agent-runner/.env` to point to your local server instance.
-- Update `packages/agent-runner/config/prompts/*.md` to tailor prompt templates.
+- `project_manifest`  
+  - Drupal core version  
+  - Composer dependencies (especially `drupal/*`)  
+  - Custom module and theme locations  
 
-## Testing and Continuous Integration
-- **Unit tests**: `pnpm test` runs JavaScript/TypeScript suites for both packages.
-- **Integration tests**: `pnpm test:integration` spins up the Drupal 11 environment, executes MCP tool flows, and validates agent-runner interactions. Requires Docker and an LLM API key.
-- **Linting and formatting**: `pnpm lint` and `pnpm format:check` enforce coding standards.
-- **Static analysis**: `composer test` within the Drupal container runs PHPStan and PHPUnit for custom modules.
+- `project_modules` (planned)  
+  - Enabled modules and themes via Drush  
+  - Distinction between core / contrib / custom  
 
-GitHub Actions (see `.github/workflows/`) execute the full test matrix on every pull request and on merges to `main`. Failing checks must be fixed before a PR can be merged.
+- `project_config_layout` (planned)  
+  - Config sync directory  
+  - Any environment specific overrides  
 
-## Contribution Guidelines
-- Follow the [Drupal Coding Standards](https://www.drupal.org/docs/develop/standards) for PHP code and [TypeScript ESLint rules](https://typescript-eslint.io/rules/) for TypeScript.
-- Open an issue describing proposed changes before submitting large features.
-- Fork the repository, create a feature branch, and ensure all tests pass before opening a pull request.
-- Use conventional commits (for example, `feat:`, `fix:`, `docs:`) and include detailed PR descriptions with screenshots where applicable.
-- Reviewers expect documentation updates alongside functional changes when applicable.
+This context gives an AI a grounded view of “where it is” before it starts proposing code.
 
-## References
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/)
-- [Drupal 11 Documentation](https://www.drupal.org/docs/understanding-drupal/drupal-11)
-- [pnpm Workspace Guide](https://pnpm.io/workspaces)
-- [Docker Compose](https://docs.docker.com/compose/)
+### Tooling bridge
 
-## Roadmap
-Planned enhancements and open discussions are tracked in the [Roadmap board](https://github.com/your-org/DriftCore/projects/1). Upcoming initiatives include:
+DriftCore exposes a curated set of tools that map to the commands Drupal devs actually use, such as:
 
-- Extending the agent runner with VS Code Live Share support.
-- Adding automated Drupal Rector upgrades for contributed modules.
-- Publishing reusable MCP tools for other PHP frameworks.
+- Drush commands (status, module list, cache rebuild, database updates)
+- Composer operations (require, update, audit)
+- Config workflows (export, import, diff)
+- Code checks (lint, static analysis, tests)  
 
-Contributions and feedback are welcome via GitHub issues and discussions.
+These are wrapped as MCP tools with:
+
+- Clear input and output schemas.
+- Guardrails to avoid destructive free form shell access.
+- Room for policies such as “dry run first, then apply”.
+
+### Blueprints and scaffolds
+
+In addition to raw tools, DriftCore will gradually grow a set of opinionated blueprints, for example:
+
+- Create a new feature module wired for config export.
+- Add a content type with JSON:API and a default View.
+- Scaffold a custom theme with a preferred front end stack.
+- Set up basic testing and CI configuration for a project.
+
+The intent is to capture repeatable patterns in a form an AI can call, reconfigure, and extend.
+
+---
+
+## Typical use cases
+
+Some examples of the kind of workflows DriftCore is meant to support:
+
+- **Upgrade helper**  
+  - Inspect core and contrib versions.  
+  - Suggest upgrade steps.  
+  - Run Composer updates an
