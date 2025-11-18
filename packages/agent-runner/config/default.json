@@ -1,7 +1,0 @@
-{
-  "serverEndpoint": "http://localhost:8080",
-  "transport": "http",
-  "sdkOutputDir": ".driftcore/sdk",
-  "sandboxRuntime": "node",
-  "sandboxBootstrapCode": "console.log('Drupal sandbox ready for automation');"
-}
