@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.git/
+.gitignore
+.env
+.env.*
+coverage/
+Dockerfile
+Dockerfile.*
+

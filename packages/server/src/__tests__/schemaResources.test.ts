@@ -9,14 +9,15 @@ describe("schema resources", () => {
     const ids = resources.map((resource) => resource.id);
     assert.ok(ids.includes("schema.entityTypes"));
     assert.ok(ids.includes("config.exported"));
+     assert.ok(ids.includes("project_manifest"));
   });
 });
 
 describe("drush tools", () => {
-  it("includes cache rebuild command", () => {
+  it("includes drift.drush_status tool definition", () => {
     const tools = getDrushTools();
-    const cacheTool = tools.find((tool) => tool.name === "drush.cacheRebuild");
-    assert.ok(cacheTool, "drush.cacheRebuild tool should be defined");
-    assert.equal(cacheTool?.command, "drush cache:rebuild");
+    const statusTool = tools.find((tool) => tool.name === "drift.drush_status");
+    assert.ok(statusTool, "drift.drush_status tool should be defined");
+    assert.ok(statusTool?.args?.includes("--format=json"));
   });
 });
