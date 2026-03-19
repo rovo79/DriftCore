@@ -15,6 +15,8 @@
   - Verifies tool invocations do not modify a sentinel project file.
 - `__tests__/schemaResources.test.ts`
   - Verifies required static schema resources and drush tool registration.
+- `__tests__/contracts.test.ts`
+  - Verifies contract-level response shapes for transport routes and resource/tool envelopes.
 - `integration/smoke.ts`
   - Starts ephemeral HTTP server and calls core endpoints (`/health`, `/resources`, `/project-manifest`, `/drush/status`, `/composer/info`).
 
@@ -27,7 +29,6 @@
 ## Gaps / what to add next
 
 - No property/fuzz tests for parsing untrusted CLI output.
-- No contract tests for schema versioning backward compatibility.
 - No CI config in repo to enforce test execution on PRs.
 
 ## Assumptions

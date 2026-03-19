@@ -1,200 +1,277 @@
-# Agents and DriftCore
+# AGENTS Guide for DriftCore
 
-This document describes how external agents should use DriftCore through MCP.
+This file is the authoritative guide for coding agents working in this repo.
 
-DriftCore is not an agent runner. It does not handle planning, long term memory, or conversation orchestration. It provides:
+## What DriftCore Is
 
-- Project aware context for a single Drupal codebase
-- A small set of curated tools (Drush, Composer, etc.)
-- Stable MCP resources and tools that agents can call
+DriftCore is a **single-project, Drupal-aware MCP service** that runs alongside a local
+or containerized Drupal codebase. It gives AI clients structured, low-risk access to
+project context and selected developer workflows.
 
-Your agent runner (Claude, ChatGPT MCP, a custom framework, etc.) is responsible for how and when to call these tools.
+**Product now:** trusted local Drupal operations/context layer for AI.
+**Product later:** higher-level workflow engine built on top.
+**Not yet:** platform ecosystem with runner, sandbox, SDKs, or broad remote deployment.
 
----
+## What Is Real Today
 
-## 1. How agents should think about DriftCore
+The only production code is in `packages/server`. It provides:
 
-You can think of DriftCore as a "project console" for a specific Drupal repo. Before an agent suggests code or commands, it should:
+- **Project manifest** — Drupal root, core version, composer metadata, custom module/theme dirs
+- **Drush inspection tools** — `drift.drush_status`, `drift.drush_pml`
+- **Composer inspection tools** — `drift.composer_info`, `drift.composer_outdated`
+- **HTTP and STDIO transports** — GET read routes, POST write apply routes, line-delimited JSON STDIO
+- **Structured response envelope** — `status` (`ok|degraded|error|timeout|not_configured`), optional `data`, optional `error`
+- **CLI execution wrapper** — `runCliCommand` with `shell: false`, timeouts, concurrency cap
 
-1. Discover the project context  
-2. Inspect the current state with Drush and Composer tools  
-3. Use that information to ground any recommendations
+### Explicitly Not Real Yet
 
-Agents should never assume:
+These exist as stubs or placeholders. Do not treat them as working:
 
-- Drupal core version  
-- Enabled modules or themes  
-- Folder layout or config paths  
+| Module | Status |
+|---|---|
+| `sandboxExecution.ts` → `executeInSandbox` | Placeholder. `runCliCommand` is real. |
+| `sdkGeneration.ts` → `generateSDK` | No-op stub. |
+| `schemaResources.ts` | Static template data, not dynamically introspected. |
+| `packages/agent-runner` | Placeholder package. Not production code. |
 
-They should always verify these through DriftCore first.
+Do not build on, extend, or reference these as if they work.
 
----
+## Active Scope
 
-## 2. Available resources (v0.1)
+- Focus all implementation work on `packages/server` unless explicitly asked otherwise.
+- `packages/agent-runner` is deferred. Do not let it steer architecture.
 
-### 2.1 `project_manifest`
+## Engineering Priorities (current)
 
-Use this to understand what project you are in.
+These are ordered. Do not skip ahead.
 
-Typical fields (exact schema may evolve):
+1. **Contract and truth** — stabilize response schemas, version `project_manifest`, add contract tests, align docs with implementation reality.
+2. **Security hardening** — HTTP auth or localhost-only enforcement, stderr/path redaction mode, binary path validation, rate limiting.
+3. **Dynamic truth** — replace static schema resources with project-discovered facts, add capability metadata so clients know what's real vs template.
+4. **Workflow primitives** — upgrade assessment, config drift analysis, scaffold planning. Every write-capable workflow follows: inspect → plan → preview → apply → verify.
+5. **Operational maturity** — contract-level tests, malformed CLI resilience, timeout/process cleanup, CI gates.
 
-- `drupal_root`  
-- `drupal_core_version`  
-- `project_type` (for example "drupal-recommended-project")  
-- `composer_json` (subset of composer.json relevant for agents)  
-- `custom_modules[]` with `name` and `path`  
-- `custom_themes[]` with `name` and `path`  
+## Tooling Baseline
 
-**Agent guidance:**
+- Runtime: Node.js 20+
+- Language: TypeScript (strict mode enabled)
+- Module system: ESM (`"type": "module"`)
+- Tests: Node built-in test runner (`node:test` + `node --test`)
+- Build output: `packages/server/dist`
 
-- Call `project_manifest` at the start of any session dealing with a new project.
-- Use the returned Drupal core version when suggesting APIs.  
-- Use module and theme paths when talking about files or code locations.
+## Working Directory Conventions
 
----
+- Run server package commands from `packages/server`.
+- Use `--prefix` when running from repo root.
+- Prefer reproducible CLI commands over IDE-only actions.
 
-## 3. Available tools (v0.1)
+## Install
 
-All tools in v0.1 are read only. They should not modify the project.
+```sh
+npm --prefix packages/server install
+```
 
-### 3.1 `drift.drush_status`
+## Build, Lint, Test
 
-Runs a fixed `drush status` and returns a structured summary.
+```sh
+# Build TypeScript
+npm --prefix packages/server run build
 
-Use it to:
+# Lint / typecheck (tsc --noEmit)
+npm --prefix packages/server run lint
 
-- Confirm Drupal core version reported by Drush
-- See PHP version, database driver, and site path
-- Cross check environment assumptions
+# Full test suite (builds first, then runs node --test dist/__tests__)
+npm --prefix packages/server test
 
-### 3.2 `drift.drush_pml`
+# Integration smoke test
+npm --prefix packages/server run integration
+```
 
-Runs a fixed `drush pml` and returns enabled modules and themes in a structured form.
+### Run a Single Test
 
-Use it to:
+Tests execute from `dist`, so build first.
 
-- See which core, contrib, and custom modules are enabled
-- Check which themes are active
-- Avoid recommending modules that are already present or enabled
+```sh
+# Build
+npm --prefix packages/server run build
 
-### 3.3 `drift.composer_info`
+# One file
+node --test packages/server/dist/__tests__/projectManifest.test.js
 
-Returns:
-
-- The project name from composer.json
-- The full set of `require` dependencies
-- Optional summary of the lock file
-
-Use it to:
-
-- Understand which Drupal packages are actually installed
-- Check compatibility constraints before suggesting new packages
-
-### 3.4 `drift.composer_outdated`
-
-Runs `composer outdated` in a safe way and returns a parsed list of outdated packages.
-
-Use it to:
-
-- Identify modules and libraries that may need upgrades
-- Prioritize which packages to discuss in an upgrade plan
-
----
-
-## 4. Agent patterns
-
-This section describes common patterns agents should follow.
-
-### 4.1 Project discovery pattern
-
-Goal: build a mental model of the project before suggesting changes.
-
-Recommended sequence:
-
-1. Call `project_manifest`  
-2. Call `drift.drush_status`  
-3. Call `drift.drush_pml`  
-4. Optionally call `drift.composer_info`  
-
-Then:
-
-- Summarize:
-  - Drupal core version  
-  - Notable modules and themes  
-  - Any obvious characteristics from composer.json  
-- Only after this summary should you propose any plan or code.
-
-### 4.2 Upgrade assessment pattern
-
-Goal: help the user understand upgrade options, without running commands.
-
-Recommended sequence:
-
-1. `project_manifest`  
-2. `drift.composer_outdated`  
-
-Then:
-
-- Group outdated packages into:
-  - Drupal core and related packages  
-  - Key contrib modules  
-  - Everything else  
-- Describe potential risks at a high level based on the stack  
-- Suggest a staged upgrade approach  
-- Do **not** suggest running composer commands directly in v0.1  
-  (writing commands as text for the user to run is fine, executing them is not)
-
-### 4.3 Feature planning pattern
-
-Goal: plan a new feature or custom module that fits project conventions.
-
-Recommended sequence:
-
-1. `project_manifest`  
-2. `drift.drush_pml`  
-
-Then:
-
-- Check if a similar module or feature already exists  
-- If not, propose:
-  - Module name and purpose  
-  - Directory path that matches existing custom modules  
-  - High level list of components (services, plugins, config)  
-
-Do **not** assume file structure that conflicts with the actual paths returned by `project_manifest`.
-
----
-
-## 5. Safety and constraints
-
-Rules for any agent using DriftCore v0.1:
-
-1. **Read only tools**  
-   - All tools are inspection only in v0.1.  
-   - Do not expect DriftCore to write files or run destructive operations.  
-   - If you need to propose changes, describe them as text or patches for the human to apply.
-
-2. **Always ground recommendations in tool output**  
-   - If you are about to say "This project runs Drupal X", first verify with `project_manifest` and `drift.drush_status`.  
-   - If your earlier assumptions conflict with tool output, explicitly update your understanding and correct yourself.
-
-3. **Handle errors transparently**  
-   - If a tool returns an error (missing Drush, Composer, invalid root), surface that to the user.  
-   - Do not invent alternate commands or flags that DriftCore does not expose.
-
-4. **Do not guess paths**  
-   - Use the module and theme paths from `project_manifest`.  
-   - If a module is not listed, assume it does not exist until the user confirms otherwise.
-
----
-
-## 6. Example agent persona
-
-Here is an example of how you might configure an ag
-
-## Active Technologies
-- TypeScript 5.x targeting Node.js 20 LTS + Node.js standard library (`http`, `readline`), `yargs` for CLI argument parsing, TypeScript toolchain (001-driftcore-1-single)
-- N/A (no persistent storage; configuration via JSON file only) (001-driftcore-1-single)
-
-## Recent Changes
-- 001-driftcore-1-single: Added TypeScript 5.x targeting Node.js 20 LTS + Node.js standard library (`http`, `readline`), `yargs` for CLI argument parsing, TypeScript toolchain
+# One test by name
+node --test --test-name-pattern "degrades when composer metadata is incomplete" \
+  packages/server/dist/__tests__/projectManifest.test.js
+
+# From package directory
+cd packages/server && node --test dist/__tests__/projectManifest.test.js
+```
+
+## Start
+
+```sh
+# STDIO transport
+npm --prefix packages/server run start:stdio
+
+# HTTP transport
+npm --prefix packages/server run start:http -- --port 8080
+
+# With explicit config
+DRIFTCORE_CONFIG=/abs/path/to/driftcore.config.json npm --prefix packages/server run start:stdio
+```
+
+## Pre-PR Verification
+
+Run in this order for any `packages/server` change:
+
+```sh
+npm --prefix packages/server run lint
+npm --prefix packages/server run build
+npm --prefix packages/server test
+npm --prefix packages/server run integration  # for transport/tooling changes
+```
+
+## Architecture Quick Reference
+
+```
+packages/server/src/
+├── index.ts             # createMCPServer — wires config, tools, resources, transports
+├── config.ts            # loadServerConfig — path resolution, validation, defaults
+├── types.ts             # Shared types, response envelope, status taxonomy
+├── bin/
+│   ├── http.ts          # CLI entry point (yargs --port)
+│   └── stdio.ts         # CLI entry point
+├── transports/
+│   ├── http.ts          # GET read routes and POST write apply routes
+│   └── stdio.ts         # Line-delimited JSON action dispatch
+├── features/
+│   ├── cache.ts         # TimedCache<T> — in-memory TTL cache
+│   ├── composerTools.ts # composer_info, composer_outdated handlers
+│   ├── drushTools.ts    # drush_status, drush_pml handlers
+│   ├── errorMapping.ts  # mapCliResultToError, truncateStderr
+│   ├── projectManifest.ts # project_manifest resource builder
+│   ├── projectPaths.ts  # resolveProjectRoot, readJsonFile, toProjectRelativePath
+│   ├── sandboxExecution.ts # runCliCommand (real), executeInSandbox (stub)
+│   ├── schemaResources.ts  # static template resources (demote, don't extend)
+│   └── sdkGeneration.ts    # stub (deferred)
+├── __tests__/           # node:test suites
+└── integration/
+    └── smoke.ts         # HTTP smoke test (shape checks, not deep validation)
+```
+
+### Key design rules
+
+- Transport handlers are thin dispatchers. Business logic belongs in `features/*`.
+- All responses use the shared envelope: `{ status, data?, error? }`.
+- CLI tools use a fixed allowlist — no arbitrary user flags or shell access.
+- Config resolution: explicit path → `DRIFTCORE_CONFIG` env → `./driftcore.config.json`.
+
+## Code Style and Conventions
+
+### Formatting
+- 2-space indentation.
+- Semicolons required.
+- Double quotes in TypeScript files.
+- Keep lines readable; extract a helper when nesting obscures intent.
+
+### Imports
+- Order: Node built-ins (`node:*`) → external packages → internal relative imports.
+- Use explicit `.js` extension in TS import paths (ESM emit compatibility).
+- Use `import type` for type-only imports.
+
+### Types and API Shapes
+- Explicit interfaces/types for response payloads.
+- Shared envelope: `status`, optional `data`, optional `error`.
+- No `any`. Validate and coerce `unknown` data deliberately.
+- Preserve strict-null behavior (`string | null` where applicable).
+
+### Naming
+- `PascalCase`: interfaces, types.
+- `camelCase`: variables, functions, parameters.
+- Descriptive tool handler names (`runDrushStatus`, `runComposerOutdated`).
+- Stable error code constants (`E_JSON_PARSE`, `E_CONFIG_INVALID_ROOT`).
+
+### Error Handling
+- Never swallow errors silently.
+- Return structured error responses via `makeErrorResponse`, not ad-hoc strings.
+- Include diagnostics that help debugging; do not leak secrets or full paths in non-redacted mode.
+- Route CLI failures through `mapCliResultToError` when available.
+
+### Filesystem and Path Safety
+- Resolve and validate paths before use.
+- Use `projectPaths` helpers for project-relative normalization.
+- Do not assume binary paths; rely on config resolution logic.
+
+### Caching and Timeouts
+- Respect configured TTLs and timeout values.
+- Defaults are centralized in `config.ts` (`applyDefaults`).
+- No hidden global mutable state outside `cache.ts`.
+
+## Contract Stability
+
+This is a first-class concern. When modifying tool or resource responses:
+
+- Do not rename or remove fields in response payloads without explicit instruction.
+- Do not change the `status` taxonomy (`ok|degraded|error|timeout|not_configured`).
+- Do not change error code constants (`E_*`).
+- New fields are additive and safe. Removing or renaming is a breaking change.
+- When adding tools or resources, follow the existing registration pattern in `index.ts`.
+
+## Changelog Policy
+
+Every pull request that changes a response shape, error code, HTTP route, or STDIO action must add or update `CHANGELOG.md`. Contract-affecting entries belong in a `Contract Changes` subsection with a short before/after description so reviewers can see exactly what changed without diffing the implementation.
+
+## Security Awareness
+
+Current known gaps (these are active priorities, not footnotes):
+
+- HTTP transport has **no auth**. Treat it as localhost-only until auth is added.
+- Error payloads may leak filesystem paths via stderr. Redaction mode is planned.
+- No rate limiting on HTTP endpoints.
+- Binary paths (drush, composer) are resolved but not allowlist-validated.
+- `spawn` uses `shell: false` and timeouts — preserve these invariants.
+
+When working on security-adjacent code:
+- Never introduce `shell: true` in subprocess execution.
+- Never pass unvalidated user input to CLI arguments.
+- Never expose raw stderr in responses without truncation (`truncateStderr`).
+- Preserve the concurrency cap (`maxParallelCli`).
+
+## Test Conventions
+
+- Use `node:test` (`describe`, `it`) and `node:assert/strict`.
+- Build small temp project fixtures for integration-like unit tests.
+- Assert `status` codes and exact key fields for tool/resource responses.
+- Cover success, degraded, and error paths.
+- Non-write tests (`cliTools.nonwrite.test.ts`) verify tools don't mutate the fixture.
+
+## Agent Behavior Expectations
+
+- Before changing behavior, read the relevant feature module and its test file.
+- Reuse existing helpers (`errorMapping`, `projectPaths`, `cache`) before adding new abstractions.
+- Keep transport handlers thin. If you're adding logic to a transport, it probably belongs in `features/*`.
+- Keep public response contracts backward-compatible unless explicitly requested to break them.
+- When adding a tool, register it via the existing factory pattern (`getDrushTools`, `getComposerTools`).
+- Do not build on stubbed modules (`executeInSandbox`, `generateSDK`) unless the task explicitly says to implement them.
+
+## Workflow Primitive Pattern (for future reference)
+
+When implementing workflow tools (upgrade assessment, config drift, scaffolding), follow this pattern:
+
+1. **Inspect** — read-only data gathering, return structured state
+2. **Plan** — produce a structured change plan from inspected state
+3. **Preview** — dry-run or diff showing what would change
+4. **Apply** — execute the change with bounded scope
+5. **Verify** — post-operation check confirming the result
+
+No mutation endpoint should skip preview and verification.
+
+## Quick Command Reference
+
+| Action | Command |
+|---|---|
+| Build | `npm --prefix packages/server run build` |
+| Lint | `npm --prefix packages/server run lint` |
+| Test all | `npm --prefix packages/server test` |
+| Test one file | `node --test packages/server/dist/__tests__/cliTools.test.js` |
+| Test one case | `node --test --test-name-pattern "normalizes drush status output" packages/server/dist/__tests__/cliTools.test.js` |
+| Integration | `npm --prefix packages/server run integration` |

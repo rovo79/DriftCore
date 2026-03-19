@@ -36,6 +36,7 @@
 ## Data contracts
 
 - Shared response envelope and status model (`ok`, `degraded`, `error`, `timeout`, `not_configured`) live in `src/types.ts`.
+- Versioned contract reference: `packages/server/docs/CONTRACT.md`.
 - Tool/resource descriptors are static objects exposed via `/tools` and `/resources`.
 - `project_manifest` schema version currently hardcoded to `0.1.0`.
 
@@ -43,7 +44,7 @@
 
 - Tool commands are fixed/allowlisted in code (no user-provided CLI flags through transport interfaces).
 - Command execution defaults to serialized mode (`maxParallelCli` defaults to `1`).
-- HTTP API is GET-only and does not implement auth, sessions, or protocol-level MCP envelopes.
+- HTTP API uses GET for read routes and POST only for write apply routes; it does not implement auth, sessions, or protocol-level MCP envelopes.
 - `features/sdkGeneration.ts` and sandbox code execution are placeholders (not production behavior yet).
 
 ## Assumptions
