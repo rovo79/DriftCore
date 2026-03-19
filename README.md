@@ -39,6 +39,8 @@ The following modules/packages currently exist as placeholders or templates and 
 - `packages/server/src/features/schemaResources.ts` (static template resources)
 - `packages/agent-runner` (placeholder package)
 
+Milestone 7 records the current disposition for the speculative pieces in `docs/decisions/runner-sandbox-sdk.md`: the runner, sandbox, and SDK generator are deferred, not active product work.
+
 ## Quick start
 
 From repo root:

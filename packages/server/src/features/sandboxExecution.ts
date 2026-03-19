@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
-// TODO: Provide isolated sandbox execution for user-supplied scripts.
+// Milestone 7 deferred general sandbox execution.
+// Keep using runCliCommand for bounded CLI execution until a concrete sandbox requirement exists.
+// See docs/decisions/runner-sandbox-sdk.md.
 export interface SandboxExecutionOptions {
   code: string;
   runtime: "deno" | "node" | "php";

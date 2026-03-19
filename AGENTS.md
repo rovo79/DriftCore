@@ -36,6 +36,8 @@ These exist as stubs or placeholders. Do not treat them as working:
 
 Do not build on, extend, or reference these as if they work.
 
+Milestone 7 records the current disposition in `docs/decisions/runner-sandbox-sdk.md`: the runner, sandbox, and SDK remain deferred and should stay out of production planning unless that decision is revisited.
+
 ## Active Scope
 
 - Focus all implementation work on `packages/server` unless explicitly asked otherwise.

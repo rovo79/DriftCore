@@ -1,4 +1,6 @@
-// TODO: Build language-specific SDK generators from MCP schemas.
+// Milestone 7 deferred generated SDKs.
+// The contract document and source types remain the source of truth for clients.
+// See docs/decisions/runner-sandbox-sdk.md.
 export interface SDKGeneratorOptions {
   targetLanguage: string;
   outputDir: string;
