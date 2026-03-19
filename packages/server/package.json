@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --pretty --noEmit",
-    "test": "npm run build && node --test dist/__tests__",
+    "test": "npm run build && node --test dist/__tests__/*.test.js",
     "integration": "npm run build && node dist/integration/smoke.js",
     "start:stdio": "node dist/bin/stdio.js",
     "start:http": "node dist/bin/http.js"

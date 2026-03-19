@@ -34,3 +34,15 @@ export function toProjectRelativePath(projectRoot: string, targetPath: string): 
   return path.relative(projectRoot, absoluteTarget);
 }
 
+export function isPathInsideDirectory(directory: string, targetPath: string): boolean {
+  const resolvedDirectory = path.resolve(directory);
+  const resolvedTarget = path.resolve(targetPath);
+  const relative = path.relative(resolvedDirectory, resolvedTarget);
+
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+export function resolvePathInsideDirectory(directory: string, targetPath: string): string | null {
+  const resolvedTarget = path.resolve(directory, targetPath);
+  return isPathInsideDirectory(directory, resolvedTarget) ? resolvedTarget : null;
+}

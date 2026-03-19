@@ -11,12 +11,21 @@ async function main() {
       default: 8080,
       describe: "Port for the MCP HTTP server",
     })
+    .option("host", {
+      alias: "H",
+      type: "string",
+      default: "127.0.0.1",
+      describe: "Host interface for the MCP HTTP server",
+    })
     .help()
-    .parseAsync()) as { port?: number };
+    .parseAsync()) as { port?: number; host?: string };
 
   const port = typeof argv.port === "number" ? argv.port : 8080;
+  const host = typeof argv.host === "string" && argv.host.length > 0
+    ? argv.host
+    : "127.0.0.1";
   const server = createMCPServer();
-  await server.handleHttp(port);
+  await server.handleHttp(port, host);
 }
 
 main().catch((error) => {

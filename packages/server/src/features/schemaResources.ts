@@ -85,16 +85,18 @@ export function listSchemaResources(): MCPResource[] {
     {
       id: "schema.entityTypes",
       name: "Drupal entity type registry",
-      description: "Normalized entity type definitions exported from the Drupal 11 sandbox.",
-      source: "drupal:config:core.entity_type",
+      description:
+        "Template entity type definitions for contract/testing purposes; not dynamically discovered from the active project.",
+      source: "template",
       mimeType: "application/json",
       data: { entityTypes: coreEntityTypes },
     },
     {
       id: "config.exported",
       name: "Drupal exported configuration",
-      description: "Selected configuration synchronised from the Drupal 11 sandbox export directory.",
-      source: "drupal:config:sync",
+      description:
+        "Template configuration sample for contract/testing purposes; not dynamically discovered from the active project.",
+      source: "template",
       mimeType: "application/json",
       data: exportedConfiguration,
     },
@@ -102,8 +104,8 @@ export function listSchemaResources(): MCPResource[] {
       id: "project_manifest",
       name: "Drupal project manifest",
       description:
-        "Summarised Drupal project context including core version, Composer dependencies, and custom modules/themes.",
-      source: "drupal:project_manifest",
+        "Template manifest shape for contract/testing purposes; runtime discovered manifest comes from the project_manifest operation.",
+      source: "template",
       mimeType: "application/json",
       data: projectManifestTemplate,
     },

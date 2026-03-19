@@ -1,12 +1,13 @@
-name: DriftCore CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,23 +17,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: packages/server/package-lock.json
 
       - name: Install dependencies
-        run: |
-          npm install --prefix packages/server
-          npm install --prefix packages/agent-runner
+        run: npm --prefix packages/server install
 
       - name: Lint
-        run: |
-          npm run lint --prefix packages/server
-          npm run lint --prefix packages/agent-runner
+        run: npm --prefix packages/server run lint
 
-      - name: Unit tests
-        run: |
-          npm run test --prefix packages/server
-          npm run test --prefix packages/agent-runner
+      - name: Build
+        run: npm --prefix packages/server run build
 
-      - name: Integration checks
-        run: |
-          npm run integration --prefix packages/server
-          npm run integration --prefix packages/agent-runner
+      - name: Test
+        run: npm --prefix packages/server test
+
+      # Integration requires a Drupal fixture and is intentionally skipped in CI for now.

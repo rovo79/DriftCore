@@ -12,7 +12,7 @@ import {
   type CliExecutionResult,
 } from "./sandboxExecution.js";
 import { resolveProjectRoot, readJsonFile } from "./projectPaths.js";
-import { mapCliResultToError, truncateStderr } from "./errorMapping.js";
+import { mapCliResultToError, redactPaths, truncateStderr } from "./errorMapping.js";
 
 type CliRunner = (options: CliExecutionOptions) => Promise<CliExecutionResult>;
 
@@ -84,6 +84,7 @@ export async function runComposerInfo(
     return ensured;
   }
   const { config } = ensured;
+  const redaction = config.redaction;
   const projectRoot = resolveProjectRoot(config);
   const composerPath = path.join(projectRoot, "composer.json");
   const lockPath = path.join(projectRoot, "composer.lock");
@@ -94,7 +95,7 @@ export async function runComposerInfo(
       status: "error",
       error: {
         code: "E_COMPOSER_NOT_FOUND",
-        message: `composer.json not found at ${composerPath}`,
+        message: `composer.json not found at ${redactPaths(composerPath, redaction)}`,
       },
     };
   }
@@ -148,6 +149,7 @@ export async function runComposerOutdated(
     return ensured;
   }
   const { config } = ensured;
+  const redaction = config.redaction;
   const projectRoot = resolveProjectRoot(config);
   const manifest = readJsonFile<Record<string, any>>(path.join(projectRoot, "composer.json"));
   const lockJson = readJsonFile<Record<string, any>>(path.join(projectRoot, "composer.lock"));
@@ -175,7 +177,7 @@ export async function runComposerOutdated(
       missingBinaryCode: "E_COMPOSER_NOT_FOUND",
       missingBinaryMessage:
         "Composer executable was not found. Install Composer or update the configuration.",
-    });
+    }, redaction);
   }
 
   let parsed: any;
@@ -187,8 +189,8 @@ export async function runComposerOutdated(
       error: {
         code: "E_JSON_PARSE",
         message: "Failed to parse composer outdated output",
-        details: { error: (error as Error).message },
-        stderr: truncateStderr(cliResult.stderr),
+        details: { error: redactPaths((error as Error).message, redaction) },
+        stderr: truncateStderr(cliResult.stderr, redaction),
       },
     };
   }

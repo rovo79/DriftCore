@@ -68,6 +68,10 @@ function createState(config: ServerConfig): ServerState {
     tools: [],
     logger: console,
     config,
+    binaryValidation: {
+      drush: { resolved: null, exists: false },
+      composer: { resolved: null, exists: false },
+    },
     runOperation: async (_meta, executor) => executor(),
   };
 }

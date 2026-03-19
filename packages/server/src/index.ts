@@ -2,11 +2,14 @@ import { createInterface } from "node:readline";
 import http from "node:http";
 import { stdioTransport } from "./transports/stdio.js";
 import { httpTransport } from "./transports/http.js";
-import type { MCPServerOptions, OperationMeta } from "./types.js";
-import { loadServerConfig } from "./config.js";
+import type { MCPServerOptions, OperationMeta, ServerState } from "./types.js";
+import { loadServerConfig, validateBinaryPaths } from "./config.js";
+import { listDiscoveredResources } from "./features/discoveredResources.js";
 import { listSchemaResources } from "./features/schemaResources.js";
 import { getDrushTools } from "./features/drushTools.js";
 import { getComposerTools } from "./features/composerTools.js";
+import { getWorkflowTools } from "./features/workflows/index.js";
+import { createRateLimiter } from "./features/rateLimiter.js";
 
 export function createMCPServer(options: MCPServerOptions = {}) {
   const { logger = console } = options;
@@ -22,6 +25,14 @@ export function createMCPServer(options: MCPServerOptions = {}) {
       }`,
     );
   }
+
+  const binaryValidation = validateBinaryPaths(loadedConfig.config);
+  const requestRateLimiter = loadedConfig.config
+    ? createRateLimiter({
+        windowMs: loadedConfig.config.rateLimit?.windowMs ?? 60000,
+        maxRequests: loadedConfig.config.rateLimit?.maxRequests ?? 60,
+      })
+    : undefined;
 
   async function withOperationLogging<T>(
     meta: OperationMeta,
@@ -49,12 +60,15 @@ export function createMCPServer(options: MCPServerOptions = {}) {
     }
   }
 
-  const serverState = {
-    resources: options.resources ?? listSchemaResources(),
-    tools: options.tools ?? [...getDrushTools(), ...getComposerTools()],
+  const serverState: ServerState = {
+    resources: options.resources ?? [...listSchemaResources(), ...listDiscoveredResources()],
+    tools: options.tools ?? [...getDrushTools(), ...getComposerTools(), ...getWorkflowTools()],
     logger,
     config: loadedConfig.config,
     configError: loadedConfig.error,
+    binaryValidation,
+    httpHost: undefined,
+    requestRateLimiter,
     runOperation: withOperationLogging,
   };
 
@@ -63,13 +77,14 @@ export function createMCPServer(options: MCPServerOptions = {}) {
       const rl = createInterface({ input: process.stdin, output: process.stdout });
       await stdioTransport(rl, serverState);
     },
-    async handleHttp(port = 8080) {
+    async handleHttp(port = 8080, host = "127.0.0.1") {
+      serverState.httpHost = host;
       const server = http.createServer((req, res) => {
         httpTransport(req, res, serverState);
       });
       return new Promise<http.Server>((resolve) => {
-        server.listen(port, () => {
-          logger.info?.(`MCP server listening on http://localhost:${(server.address() as any)?.port ?? port}`);
+        server.listen(port, host, () => {
+          logger.info?.(`MCP server listening on http://${host}:${(server.address() as any)?.port ?? port}`);
           resolve(server);
         });
       });

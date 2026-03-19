@@ -1,12 +1,17 @@
 import type {
+  BinaryValidationResult,
   ErrorDetail,
   ResourceOrToolResponse,
   ServerConfig,
   ServerState,
 } from "../types.js";
-import { resolveProjectRoot, readJsonFile, toProjectRelativePath } from "./projectPaths.js";
 import path from "node:path";
-import fs from "node:fs";
+import { readJsonFile } from "./projectPaths.js";
+import {
+  collectProjectFacts,
+  discoverProjectItems,
+  type ProjectCapabilities,
+} from "./projectTruth.js";
 
 interface ComposerError {
   code: string;
@@ -20,24 +25,19 @@ interface ComposerSummary {
   errors?: ComposerError[];
 }
 
-interface CustomModule {
-  name: string;
-  path: string;
-}
-
-interface CustomTheme {
-  name: string;
-  path: string;
-}
+type CustomModule = ReturnType<typeof discoverProjectItems>[number];
+type CustomTheme = CustomModule;
 
 export interface ProjectManifestData {
-  schema_version: "0.1.0";
+  schema_version: "0.2.0";
   drupal_root: string;
+  project_root: string;
   drupal_core_version: string | null;
   project_type: string | null;
   composer: ComposerSummary;
   custom_modules: CustomModule[];
   custom_themes: CustomTheme[];
+  capabilities: ProjectCapabilities;
 }
 
 export type ProjectManifestResponse = ResourceOrToolResponse<ProjectManifestData>;
@@ -129,48 +129,21 @@ function summariseComposer(
   return { summary, coreVersion };
 }
 
-function discoverCustomItems(
-  projectRoot: string,
-  relativeDirs: string[] | undefined,
-): CustomModule[] {
-  if (!relativeDirs || relativeDirs.length === 0) {
-    return [];
-  }
-
-  const results: CustomModule[] = [];
-
-  for (const rel of relativeDirs) {
-    const baseDir = path.resolve(projectRoot, rel);
-    if (!fs.existsSync(baseDir) || !fs.statSync(baseDir).isDirectory()) {
-      continue;
-    }
-    const entries = fs.readdirSync(baseDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const fullPath = path.join(baseDir, entry.name);
-      const projectRelative = toProjectRelativePath(projectRoot, fullPath);
-      results.push({
-        name: entry.name,
-        path: projectRelative,
-      });
-    }
-  }
-
-  return results;
-}
-
-async function buildManifest(config: ServerConfig): Promise<ProjectManifestResponse> {
-  const projectRoot = resolveProjectRoot(config);
+async function buildManifest(
+  config: ServerConfig,
+  binaryValidation: BinaryValidationResult,
+): Promise<ProjectManifestResponse> {
+  const facts = collectProjectFacts(config, binaryValidation);
+  const { projectRoot } = facts;
   const { summary: composerSummary, coreVersion } = summariseComposer(projectRoot);
 
-  const customModules = discoverCustomItems(projectRoot, config.customModuleDirs);
-  const customThemes = discoverCustomItems(projectRoot, config.customThemeDirs);
+  const customModules = discoverProjectItems(projectRoot, config.customModuleDirs);
+  const customThemes = discoverProjectItems(projectRoot, config.customThemeDirs);
 
   const manifest: ProjectManifestData = {
-    schema_version: "0.1.0",
+    schema_version: "0.2.0",
     drupal_root: config.drupalRoot,
+    project_root: projectRoot,
     drupal_core_version: coreVersion,
     project_type: deriveProjectType(
       readJsonFile<any>(path.join(projectRoot, "composer.json")),
@@ -178,6 +151,7 @@ async function buildManifest(config: ServerConfig): Promise<ProjectManifestRespo
     composer: composerSummary,
     custom_modules: customModules,
     custom_themes: customThemes,
+    capabilities: facts.capabilities,
   };
 
   if (composerSummary.status === "ok") {
@@ -218,5 +192,5 @@ export async function getProjectManifest(
     };
   }
 
-  return buildManifest(state.config as ServerConfig);
+  return buildManifest(state.config, state.binaryValidation);
 }

@@ -2,7 +2,7 @@ export interface MCPResource {
   id: string;
   name: string;
   description: string;
-  source?: string;
+  source?: "template" | "discovered";
   mimeType: string;
   data: unknown;
 }
@@ -42,6 +42,11 @@ export interface ServerState {
   logger: Pick<Console, "info" | "error" | "warn">;
   config: ServerConfig | null;
   configError?: ErrorDetail;
+  binaryValidation: BinaryValidationResult;
+  httpHost?: string;
+  requestRateLimiter?: {
+    isAllowed(ip: string): boolean;
+  };
   runOperation: OperationLogger;
 }
 
@@ -67,6 +72,47 @@ export interface ResourceOrToolResponse<TData = unknown> {
   error?: ErrorDetail;
 }
 
+export interface WritePreviewData<TPreview> {
+  preview: TPreview;
+  preview_token: string;
+  expires_at: string;
+}
+
+export interface WritePreviewResponse<TPreview> {
+  status: ResponseStatus;
+  data?: WritePreviewData<TPreview>;
+  error?: ErrorDetail;
+}
+
+export interface WriteChange {
+  type: "file_created" | "file_modified" | "command_executed";
+  target: string;
+  detail: string;
+}
+
+export interface WriteApplyData<TResult> {
+  result: TResult;
+  changes: WriteChange[];
+}
+
+export interface WriteApplyResponse<TResult> {
+  status: ResponseStatus;
+  data?: WriteApplyData<TResult>;
+  error?: ErrorDetail;
+}
+
+export interface WriteVerificationData<TVerification> {
+  verified: boolean;
+  verification: TVerification;
+  warnings: string[];
+}
+
+export interface WriteVerifyResponse<TVerification> {
+  status: ResponseStatus;
+  data?: WriteVerificationData<TVerification>;
+  error?: ErrorDetail;
+}
+
 export interface TimeoutsConfig {
   drushStatusMs?: number;
   drushPmlMs?: number;
@@ -79,6 +125,26 @@ export interface CacheTtlConfig {
   pml?: number;
 }
 
+export interface RedactionConfig {
+  enabled?: boolean;
+  placeholder?: string;
+}
+
+export interface RateLimitConfig {
+  windowMs?: number;
+  maxRequests?: number;
+}
+
+export interface BinaryValidationEntry {
+  resolved: string | null;
+  exists: boolean;
+}
+
+export interface BinaryValidationResult {
+  drush: BinaryValidationEntry;
+  composer: BinaryValidationEntry;
+}
+
 export interface ServerConfig {
   drupalRoot: string;
   drushPath?: string;
@@ -88,6 +154,8 @@ export interface ServerConfig {
   timeouts?: TimeoutsConfig;
   maxParallelCli?: number;
   cacheTtlMs?: CacheTtlConfig;
+  redaction?: RedactionConfig;
+  rateLimit?: RateLimitConfig;
 }
 
 export function makeOkResponse<TData>(data: TData): ResourceOrToolResponse<TData> {

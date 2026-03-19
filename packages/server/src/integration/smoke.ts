@@ -21,11 +21,33 @@ export async function runServerSmokeTest() {
   const manifest = await fetch(`${baseUrl}/project-manifest`).then((res) => res.json());
   assert.ok(manifest.status);
 
+  const modules = await fetch(`${baseUrl}/project-modules`).then((res) => res.json());
+  assert.ok(modules.status);
+
+  const configLayout = await fetch(`${baseUrl}/project-config-layout`).then((res) => res.json());
+  assert.ok(configLayout.status);
+
+  const checks = await fetch(`${baseUrl}/project-checks`).then((res) => res.json());
+  assert.ok(checks.status);
+
   const drushStatus = await fetch(`${baseUrl}/drush/status`).then((res) => res.json());
   assert.ok(drushStatus.status);
 
   const composerInfo = await fetch(`${baseUrl}/composer/info`).then((res) => res.json());
   assert.ok(composerInfo.status);
+
+  const upgradeAssessment = await fetch(`${baseUrl}/workflows/upgrade-assessment`).then((res) =>
+    res.json(),
+  );
+  assert.ok(upgradeAssessment.status);
+
+  const configDrift = await fetch(`${baseUrl}/workflows/config-drift`).then((res) => res.json());
+  assert.ok(configDrift.status);
+
+  const scaffoldPlan = await fetch(
+    `${baseUrl}/workflows/scaffold-plan?machine_name=acme_blog&target_type=module`,
+  ).then((res) => res.json());
+  assert.ok(scaffoldPlan.status);
 
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));
 }

@@ -1,6 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ErrorDetail, ServerConfig, TimeoutsConfig, CacheTtlConfig } from "./types.js";
+import type {
+  BinaryValidationEntry,
+  BinaryValidationResult,
+  CacheTtlConfig,
+  ErrorDetail,
+  ServerConfig,
+  TimeoutsConfig,
+} from "./types.js";
 
 export interface LoadConfigOptions {
   configPath?: string;
@@ -26,6 +33,16 @@ const DEFAULT_TIMEOUTS: Required<TimeoutsConfig> = {
 const DEFAULT_CACHE_TTL_MS: Required<CacheTtlConfig> = {
   projectManifest: 5000,
   pml: 5000,
+};
+
+const DEFAULT_REDACTION = {
+  enabled: false,
+  placeholder: "[redacted]",
+};
+
+const DEFAULT_RATE_LIMIT = {
+  windowMs: 60000,
+  maxRequests: 60,
 };
 
 function applyDefaults(raw: ServerConfig): ServerConfig {
@@ -62,6 +79,92 @@ function applyDefaults(raw: ServerConfig): ServerConfig {
     timeouts,
     maxParallelCli: raw.maxParallelCli ?? 1,
     cacheTtlMs,
+    redaction: {
+      enabled: raw.redaction?.enabled ?? DEFAULT_REDACTION.enabled,
+      placeholder: raw.redaction?.placeholder ?? DEFAULT_REDACTION.placeholder,
+    },
+    rateLimit: {
+      windowMs: raw.rateLimit?.windowMs ?? DEFAULT_RATE_LIMIT.windowMs,
+      maxRequests: raw.rateLimit?.maxRequests ?? DEFAULT_RATE_LIMIT.maxRequests,
+    },
+  };
+}
+
+function canExecuteFile(target: string): boolean {
+  try {
+    fs.accessSync(target, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveExecutableOnPath(command: string): string | null {
+  const envPath = process.env.PATH;
+  if (!envPath) {
+    return null;
+  }
+
+  const extensions = process.platform === "win32"
+    ? (process.env.PATHEXT?.split(";").filter(Boolean) ?? [".EXE", ".CMD", ".BAT"])
+    : [""];
+
+  for (const dir of envPath.split(path.delimiter)) {
+    if (!dir) {
+      continue;
+    }
+    for (const extension of extensions) {
+      const candidate = path.join(dir, `${command}${extension}`);
+      if (fs.existsSync(candidate) && canExecuteFile(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
+function validateBinaryPath(candidate: string | undefined, fallback: string): BinaryValidationEntry {
+  const resolvedCandidate = candidate && candidate.length > 0 ? candidate : fallback;
+
+  if (resolvedCandidate.includes(path.sep) || path.isAbsolute(resolvedCandidate)) {
+    const absolute = path.isAbsolute(resolvedCandidate)
+      ? resolvedCandidate
+      : path.resolve(resolvedCandidate);
+    return {
+      resolved: absolute,
+      exists: fs.existsSync(absolute) && canExecuteFile(absolute),
+    };
+  }
+
+  const onPath = resolveExecutableOnPath(resolvedCandidate);
+  return {
+    resolved: onPath ?? resolvedCandidate,
+    exists: Boolean(onPath),
+  };
+}
+
+export function validateBinaryPaths(config: ServerConfig | null): BinaryValidationResult {
+  if (!config) {
+    return {
+      drush: { resolved: null, exists: false },
+      composer: { resolved: null, exists: false },
+    };
+  }
+
+  const projectRoot = path.dirname(config.drupalRoot);
+  const drushFallback = fs.existsSync(path.join(projectRoot, "vendor", "bin", "drush"))
+    ? path.join(projectRoot, "vendor", "bin", "drush")
+    : "drush";
+  const composerFallback = fs.existsSync(path.join(projectRoot, "vendor", "bin", "composer"))
+    ? path.join(projectRoot, "vendor", "bin", "composer")
+    : fs.existsSync(path.join(projectRoot, "composer.phar"))
+      ? path.join(projectRoot, "composer.phar")
+      : "composer";
+
+  return {
+    drush: validateBinaryPath(config.drushPath, drushFallback),
+    composer: validateBinaryPath(config.composerPath, composerFallback),
   };
 }
 
@@ -172,6 +275,8 @@ export function loadServerConfig(options: LoadConfigOptions = {}): LoadedConfig 
     timeouts: rawConfig.timeouts,
     maxParallelCli: rawConfig.maxParallelCli,
     cacheTtlMs: rawConfig.cacheTtlMs,
+    redaction: rawConfig.redaction,
+    rateLimit: rawConfig.rateLimit,
   };
 
   const configWithDefaults = applyDefaults(baseConfig);

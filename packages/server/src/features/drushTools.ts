@@ -13,7 +13,7 @@ import {
 } from "./sandboxExecution.js";
 import { resolveProjectRoot, toProjectRelativePath } from "./projectPaths.js";
 import { createTimedCache } from "./cache.js";
-import { mapCliResultToError, truncateStderr } from "./errorMapping.js";
+import { mapCliResultToError, redactPaths, truncateStderr } from "./errorMapping.js";
 
 type CliRunner = (options: CliExecutionOptions) => Promise<CliExecutionResult>;
 
@@ -107,10 +107,12 @@ function coerceString(value: unknown): string | null {
 
 function parseJsonOutput<T>(raw: string): T {
   const firstBrace = raw.indexOf("{");
-  if (firstBrace === -1) {
+  const firstBracket = raw.indexOf("[");
+  const candidates = [firstBrace, firstBracket].filter((index) => index !== -1);
+  if (candidates.length === 0) {
     throw new Error("Drush output did not contain JSON data");
   }
-  const trimmed = raw.slice(firstBrace).trim();
+  const trimmed = raw.slice(Math.min(...candidates)).trim();
   return JSON.parse(trimmed) as T;
 }
 
@@ -123,6 +125,7 @@ export async function runDrushStatus(
     return ensured;
   }
   const { config } = ensured;
+  const redaction = config.redaction;
   const command = resolveDrushCommand(config);
   const args = ["status", "--format=json"];
   const cliResult = await runner({
@@ -142,12 +145,15 @@ export async function runDrushStatus(
       missingBinaryCode: "E_DRUSH_NOT_FOUND",
       missingBinaryMessage:
         "Drush executable was not found. Install Drush or update the configuration.",
-    });
+    }, redaction);
   }
 
   let parsed: Record<string, unknown>;
   try {
     parsed = parseJsonOutput<Record<string, unknown>>(cliResult.stdout);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Drush status output was not a JSON object");
+    }
   } catch (error) {
     return {
       status: "error",
@@ -155,11 +161,11 @@ export async function runDrushStatus(
         code: "E_JSON_PARSE",
         message: "Failed to parse Drush status output as JSON",
         diagnostics: {
-          command,
+          command: redactPaths(command, redaction),
           args,
         },
-        details: { error: (error as Error).message },
-        stderr: truncateStderr(cliResult.stderr),
+        details: { error: redactPaths((error as Error).message, redaction) },
+        stderr: truncateStderr(cliResult.stderr, redaction),
       },
     };
   }
@@ -199,6 +205,7 @@ export async function runDrushPml(
   const ttlMs = config.cacheTtlMs?.pml ?? 5000;
 
   return pmlCache.get(ttlMs, async () => {
+    const redaction = config.redaction;
     const command = resolveDrushCommand(config);
     const args = ["pm:list", "--format=json"];
     const cliResult = await runner({
@@ -218,7 +225,7 @@ export async function runDrushPml(
         missingBinaryCode: "E_DRUSH_NOT_FOUND",
         missingBinaryMessage:
           "Drush executable was not found. Install Drush or update the configuration.",
-      });
+      }, redaction);
     }
 
     let parsed: unknown;
@@ -231,11 +238,11 @@ export async function runDrushPml(
           code: "E_JSON_PARSE",
           message: "Failed to parse Drush pm:list output as JSON",
           diagnostics: {
-            command,
+            command: redactPaths(command, redaction),
             args,
           },
-          details: { error: (error as Error).message },
-          stderr: truncateStderr(cliResult.stderr),
+          details: { error: redactPaths((error as Error).message, redaction) },
+          stderr: truncateStderr(cliResult.stderr, redaction),
         },
       };
     }
@@ -349,12 +356,6 @@ function classifyExtension(
         : config.customThemeDirs ?? [];
     if (dirs.some((dir) => relativePath.startsWith(dir.replace(/\\/g, "/")))) {
       return "custom";
-    }
-    if (relativePath.startsWith("core/")) {
-      return "core";
-    }
-    if (relativePath.includes("/contrib/")) {
-      return "contrib";
     }
   }
 

@@ -67,6 +67,10 @@ describe("project manifest", () => {
         tools: [],
         logger: console,
         config,
+        binaryValidation: {
+          drush: { resolved: null, exists: false },
+          composer: { resolved: null, exists: false },
+        },
         runOperation: async (_meta, executor) => executor(),
       };
 
@@ -75,10 +79,12 @@ describe("project manifest", () => {
       assert.ok(response.data, "expected data in ok response");
 
       const data = response.data!;
-      assert.equal(data.schema_version, "0.1.0");
+      assert.equal(data.schema_version, "0.2.0");
       assert.equal(data.drupal_root, config.drupalRoot);
+      assert.equal(data.project_root, path.dirname(config.drupalRoot));
       assert.equal(data.drupal_core_version, "11.1.4");
       assert.equal(data.project_type, "drupal-recommended-project");
+      assert.equal(data.capabilities.can_read_project_manifest, true);
 
       assert.equal(data.composer.status, "ok");
       assert.equal(data.composer.name, "acme/site");
@@ -96,6 +102,7 @@ describe("project manifest", () => {
       assert.ok(modulePaths.some((p) => p.endsWith("web/modules/custom/acme_blog")));
 
       assert.ok(Array.isArray(data.custom_themes));
+      assert.equal(data.capabilities.can_inspect_modules, false);
     } finally {
       cleanup();
     }
@@ -107,6 +114,10 @@ describe("project manifest", () => {
       tools: [],
       logger: console,
       config: null,
+      binaryValidation: {
+        drush: { resolved: null, exists: false },
+        composer: { resolved: null, exists: false },
+      },
       configError: {
         code: "E_CONFIG_INVALID_ROOT",
         message: "invalid",
@@ -130,6 +141,10 @@ describe("project manifest", () => {
         tools: [],
         logger: console,
         config,
+        binaryValidation: {
+          drush: { resolved: null, exists: false },
+          composer: { resolved: null, exists: false },
+        },
         runOperation: async (_meta, executor) => executor(),
       };
 
