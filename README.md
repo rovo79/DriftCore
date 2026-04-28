@@ -1,6 +1,6 @@
 # DriftCore
 
-DriftCore is a Drupal-aware MCP operations layer for real project context and guarded development workflows.
+DriftCore is a Drupal-aware MCP operations server that exposes project context, Drush/Composer inspection, and guarded workflow primitives for AI-assisted development.
 
 > Status: experimental. Production code is currently in `packages/server`.
 
