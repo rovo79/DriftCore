@@ -47,6 +47,34 @@
 - HTTP API uses GET for read routes and POST only for write apply routes; it does not implement auth, sessions, or protocol-level MCP envelopes.
 - `features/sdkGeneration.ts` and sandbox code execution are placeholders (not production behavior yet).
 
+
+## Skill guidance vs runtime authority
+
+- Skills are declarative policy inputs (intent, preferences, constraints, escalation conditions).
+- Runtime/client is the operative authority (mount/unmount, hide/show, schema filtering, phase transitions).
+- The architecture seam is: `skill selection -> policy evaluation -> runtime enforcement -> narrowed visible tool universe`.
+
+### Key distinction: mounted vs exposed
+
+- **Mounted** means runtime can access a pack/server.
+- **Exposed** means model can see and call tools/resources/prompts from that pack.
+- Runtime should support mounted-but-hidden packs so capability access can expand only when policy conditions are met.
+
+### Minimal runtime policy contract (draft)
+
+- Skill contributes a declarative `mcp_policy` block with:
+  - `startup_packs`
+  - `allowed_packs`
+  - `default_visibility`
+  - `escalation` rules (for example `evidence_gap`, `docs_exhausted`)
+- Runtime evaluates and enforces that contract via pack lifecycle orchestration and tool registry filtering.
+
+### Practical implementation layers
+
+1. **Skill layer**: triggers + policy declaration.
+2. **Runtime policy layer**: evaluates policy against current phase/evidence.
+3. **MCP pack manager layer**: starts/stops packs and updates model-visible registry.
+
 ## Assumptions
 
 - Architecture description reflects current implementation, not full roadmap/RFC target state.
