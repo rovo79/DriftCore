@@ -2,59 +2,352 @@
 
 > Drupal project operations for AI coding and maintenance agents.
 
-DriftCore is a Model Context Protocol server that gives AI agents structured, authoritative context about a Drupal project and controlled access to Drupal engineering tools.
+DriftCore is an experimental Model Context Protocol server that gives AI agents structured, authoritative context about a Drupal project and guarded access to Drupal engineering workflows.
 
-It runs alongside a local or containerized Drupal codebase. Instead of requiring an agent to infer project state from arbitrary filesystem searches and shell output, DriftCore exposes stable Drupal-aware resources and named operations backed by project discovery, Drush, and Composer.
+It runs alongside a local or containerized Drupal codebase. Instead of asking an agent to infer project state from arbitrary filesystem searches and shell output, DriftCore exposes Drupal-aware resources and named operations backed by project discovery, Drush, and Composer.
 
-> **Status:** Experimental. The active implementation is located in `packages/server`.
+The active implementation is in [`packages/server`](packages/server).
+
+## What DriftCore does
+
+DriftCore currently provides three layers of capability.
+
+### Project context
+
+Agents can inspect:
+
+* the Drupal root and core version
+* Composer project metadata and dependencies
+* installed, enabled, and custom modules and themes
+* configuration sync layout and environment indicators
+* project readiness checks and available capabilities
+
+### Read-only assessments
+
+Agents can request structured assessments for:
+
+* available Drupal and Composer upgrades
+* active configuration drift
+* planned custom module scaffolding
+
+### Guarded write workflows
+
+DriftCore implements bounded write workflows for:
+
+* rebuilding Drupal caches
+* creating a minimal custom module scaffold
+* exporting Drupal configuration
+
+Each write workflow follows the same lifecycle:
+
+```text
+preview → apply → verify
+```
+
+A preview returns the intended operation and a short-lived token. Apply requires that token and consumes it so it cannot be reused. Verification then inspects the resulting project state.
 
 ## Why DriftCore
 
 General-purpose coding agents can read files and execute commands, but they do not automatically understand the operational structure of a Drupal project.
 
-They may need to determine:
+Without a Drupal-aware interface, an agent may need to guess:
 
-* where the Drupal root is located
-* which version of Drupal core is installed
-* which modules and themes are custom
-* which extensions are enabled
-* what Composer dependencies are installed
-* which packages are outdated
-* whether Drush and related project tools are available
+* where the real Drupal root is
+* whether Drush and Composer are available
+* which extensions are custom
+* how configuration is organized
+* which operations are safe to perform
+* how to verify that a change succeeded
 
-DriftCore turns this information into structured MCP resources and tools so agents can work from explicit project facts rather than brittle assumptions.
+DriftCore turns those concerns into explicit resources and tools. The goal is not unrestricted automation. The goal is controlled, inspectable, and verifiable Drupal project operations.
 
-## What DriftCore does today
+## Safety model
 
-The current server provides:
+DriftCore is designed around bounded capabilities rather than general shell access.
 
-### Project discovery
+Current safeguards include:
 
-* Drupal root discovery
-* Drupal core version detection
-* Composer project metadata
-* custom module discovery
-* custom theme discovery
-* a consolidated `project_manifest` resource
+* fixed Drupal and Composer command paths
+* subprocess execution without a shell
+* per-command timeouts
+* configurable concurrency limits
+* short-lived, single-use preview tokens for write operations
+* filesystem boundary checks for generated files
+* post-apply verification
+* localhost HTTP binding by default
+* cross-origin request rejection
+* request body limits
+* configurable output redaction
+* per-client HTTP rate limiting
 
-### Drush inspection
+DriftCore remains experimental. It does not currently provide a complete authentication and authorization system for remote or multi-user deployment.
+
+## Requirements
+
+* Node.js 20 or newer
+* npm 9 or newer
+* a local Drupal project
+* Drush for Drupal inspection and Drush-backed workflows
+* Composer for dependency inspection and upgrade assessment
+
+Project-local executables such as `vendor/bin/drush` are supported.
+
+## Quick start
+
+From the repository root:
+
+```bash
+npm --prefix packages/server install
+npm --prefix packages/server run build
+```
+
+Create a configuration file:
+
+```json
+{
+  "drupalRoot": "/absolute/path/to/drupal/web"
+}
+```
+
+Save it as `driftcore.config.json` in the current working directory, or point `DRIFTCORE_CONFIG` to it:
+
+```bash
+export DRIFTCORE_CONFIG=/absolute/path/to/driftcore.config.json
+```
+
+Start the STDIO transport:
+
+```bash
+npm --prefix packages/server run start:stdio
+```
+
+Or start the HTTP transport:
+
+```bash
+npm --prefix packages/server run start:http -- --port 8080
+```
+
+The HTTP server binds to `127.0.0.1` by default.
+
+## Configuration
+
+A minimal configuration only requires `drupalRoot`.
+
+```json
+{
+  "drupalRoot": "/absolute/path/to/drupal/web",
+  "drushPath": "/absolute/path/to/vendor/bin/drush",
+  "composerPath": "/absolute/path/to/composer",
+  "customModuleDirs": [
+    "web/modules/custom"
+  ],
+  "customThemeDirs": [
+    "web/themes/custom"
+  ],
+  "maxParallelCli": 1,
+  "timeouts": {
+    "drushStatusMs": 10000,
+    "drushPmlMs": 15000,
+    "composerInfoMs": 8000,
+    "composerOutdatedMs": 30000
+  },
+  "cacheTtlMs": {
+    "projectManifest": 5000,
+    "pml": 5000
+  },
+  "redaction": {
+    "enabled": false,
+    "placeholder": "[redacted]"
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "maxRequests": 60
+  }
+}
+```
+
+When executable paths are omitted, DriftCore first looks for project-local binaries and then falls back to commands available on `PATH`.
+
+## Resources
+
+### `project_manifest`
+
+Returns a consolidated project summary including the Drupal root, Drupal core version, Composer state, custom modules, and custom themes.
+
+### `project_modules`
+
+Returns discovered module and theme state. DriftCore uses Drush when available and falls back to filesystem discovery for custom extensions.
+
+### `project_config_layout`
+
+Reports the detected configuration sync directory, Config Split indicators, environment-related configuration hints, and the detection method used.
+
+### `project_checks`
+
+Reports project readiness and capability flags, including Drupal root validity, binary availability, Composer metadata, and configuration sync detection.
+
+### Template resources
+
+The resource catalog also contains static contract/testing templates:
+
+* `schema.entityTypes`
+* `config.exported`
+* the template descriptor for `project_manifest`
+
+These templates are not dynamically discovered from the connected Drupal project and should not be treated as authoritative project data.
+
+## Tools and workflows
+
+### Inspection tools
 
 * `drift.drush_status`
 * `drift.drush_pml`
-
-### Composer inspection
-
 * `drift.composer_info`
 * `drift.composer_outdated`
 
-### MCP transports
+### Read-only workflow tools
 
-* HTTP
-* STDIO using line-delimited JSON actions
+* `drift.upgrade_assessment`
+* `drift.config_drift_assessment`
+* `drift.scaffold_plan`
 
-### Structured responses
+### Guarded write workflow tools
 
-Resources and tools use a shared response envelope:
+* `drift.cache_rebuild`
+* `drift.module_scaffold`
+* `drift.config_export`
+
+The write tools expose separate preview, apply, and verify operations through the transports.
+
+## HTTP interface
+
+### Discovery and inspection routes
+
+```text
+GET /health
+GET /resources
+GET /tools
+GET /project-manifest
+GET /project-modules
+GET /project-config-layout
+GET /project-checks
+GET /drush/status
+GET /drush/pml
+GET /composer/info
+GET /composer/outdated
+```
+
+### Read-only workflow routes
+
+```text
+GET /workflows/upgrade-assessment
+GET /workflows/config-drift
+GET /workflows/scaffold-plan?machine_name=acme_blog&target_type=module
+```
+
+### Cache rebuild workflow
+
+```text
+GET  /workflows/cache-rebuild/preview
+POST /workflows/cache-rebuild/apply
+GET  /workflows/cache-rebuild/verify
+```
+
+Apply body:
+
+```json
+{
+  "preview_token": "token returned by preview"
+}
+```
+
+### Module scaffold workflow
+
+```text
+GET  /workflows/scaffold/preview?machine_name=acme_blog&target_type=module
+POST /workflows/scaffold/apply
+GET  /workflows/scaffold/verify?machine_name=acme_blog&target_type=module
+```
+
+Apply body:
+
+```json
+{
+  "machine_name": "acme_blog",
+  "target_type": "module",
+  "preview_token": "token returned by preview"
+}
+```
+
+### Configuration export workflow
+
+```text
+GET  /workflows/config-export/preview
+POST /workflows/config-export/apply
+GET  /workflows/config-export/verify
+```
+
+Apply body:
+
+```json
+{
+  "preview_token": "token returned by preview"
+}
+```
+
+## STDIO interface
+
+The STDIO transport accepts one JSON request per line.
+
+Example:
+
+```json
+{"id":1,"action":"project_manifest"}
+```
+
+Available actions:
+
+```text
+resources
+tools
+project_manifest
+project_modules
+project_config_layout
+project_checks
+drush_status
+drush_pml
+composer_info
+composer_outdated
+upgrade_assessment
+config_drift_assessment
+scaffold_plan
+cache_rebuild_preview
+cache_rebuild_apply
+cache_rebuild_verify
+scaffold_preview
+scaffold_apply
+scaffold_verify
+config_export_preview
+config_export_apply
+config_export_verify
+```
+
+Parameters are supplied through the `params` object:
+
+```json
+{
+  "id": 2,
+  "action": "scaffold_preview",
+  "params": {
+    "machine_name": "acme_blog",
+    "target_type": "module"
+  }
+}
+```
+
+## Response model
+
+Resources and tools use a shared response envelope.
 
 ```json
 {
@@ -71,230 +364,19 @@ Supported status values are:
 * `timeout`
 * `not_configured`
 
-Responses may include:
+A response may also include a structured `error` with a machine-readable code, message, and diagnostics.
 
-* `data`
-* `error`
-
-## Operating model
-
-DriftCore is designed around bounded, observable Drupal operations.
-
-The current public capabilities are primarily read-only inspection tools. Future state-changing workflows are expected to follow this sequence:
-
-```text
-inspect → plan → preview → apply → verify
-```
-
-This means an agent should be able to:
-
-1. inspect the current project state
-2. produce a proposed operation
-3. preview its expected effects
-4. apply the operation explicitly
-5. verify the resulting state
-
-The public tool surface should expose named Drupal-aware operations rather than unrestricted shell execution.
-
-## Quick start
-
-### 1. Install dependencies
-
-From the repository root:
-
-```bash
-npm --prefix packages/server install
-```
-
-### 2. Build the server
-
-```bash
-npm --prefix packages/server run build
-```
-
-### 3. Configure the Drupal project
-
-DriftCore can load its configuration from either:
-
-* the path specified by `DRIFTCORE_CONFIG`
-* `driftcore.config.json` in the current working directory
-
-Example:
-
-```json
-{
-  "drupalRoot": "/absolute/path/to/drupal/web"
-}
-```
-
-Using an explicit configuration path:
-
-```bash
-export DRIFTCORE_CONFIG=/absolute/path/to/driftcore.config.json
-```
-
-### 4. Start a transport
-
-Start the STDIO transport:
-
-```bash
-npm --prefix packages/server run start:stdio
-```
-
-Start the HTTP transport:
-
-```bash
-npm --prefix packages/server run start:http -- --port 8080
-```
-
-## HTTP interface
-
-The current HTTP transport exposes these read routes:
-
-```text
-GET /health
-GET /resources
-GET /tools
-GET /project-manifest
-GET /drush/status
-GET /drush/pml
-GET /composer/info
-GET /composer/outdated
-```
-
-## STDIO interface
-
-The current STDIO transport supports these actions:
-
-```text
-resources
-tools
-project_manifest
-drush_status
-drush_pml
-composer_info
-composer_outdated
-```
-
-## Resources and tools
-
-### Implemented resources
-
-#### `project_manifest`
-
-Returns a discovered summary of the Drupal project, including:
-
-* Drupal root
-* Drupal core version
-* Composer metadata
-* custom modules
-* custom themes
-
-### Implemented tools
-
-#### `drift.drush_status`
-
-Wraps:
-
-```bash
-drush status --format=json
-```
-
-#### `drift.drush_pml`
-
-Wraps:
-
-```bash
-drush pm:list --format=json
-```
-
-#### `drift.composer_info`
-
-Reads and summarizes:
-
-```text
-composer.json
-composer.lock
-```
-
-#### `drift.composer_outdated`
-
-Wraps:
-
-```bash
-composer outdated --format=json
-```
-
-### Template resources
-
-The following resources currently return static template data:
-
-* `schema.entityTypes`
-* `config.exported`
-
-These are not yet derived from the connected Drupal project and should not be treated as authoritative project facts.
-
-Replacing these templates with discovered project data is part of the roadmap.
-
-## Contract documentation
-
-The versioned response and compatibility contract is documented in:
-
-```text
-packages/server/docs/CONTRACT.md
-```
-
-## Architecture
-
-```text
-packages/server/src/
-├── index.ts
-│   └── Wires configuration, resources, tools, and transports
-├── config.ts
-│   └── Loads configuration, resolves paths, and applies defaults
-├── types.ts
-│   └── Shared types, response envelopes, and status taxonomy
-├── bin/
-│   ├── http.ts
-│   └── stdio.ts
-├── transports/
-│   ├── http.ts
-│   └── stdio.ts
-├── features/
-│   ├── cache.ts
-│   ├── composerTools.ts
-│   ├── drushTools.ts
-│   ├── errorMapping.ts
-│   ├── projectManifest.ts
-│   ├── projectPaths.ts
-│   ├── sandboxExecution.ts
-│   ├── schemaResources.ts
-│   └── sdkGeneration.ts
-├── __tests__/
-└── integration/
-    └── smoke.ts
-```
+Write operations additionally report their observed changes, and verification operations report whether the resulting state was confirmed.
 
 ## Scope and boundaries
 
-DriftCore operates on the **project and engineering plane** of Drupal.
+DriftCore operates on Drupal's **project and engineering plane**.
 
-It is intended for agents that need to understand, diagnose, maintain, or eventually modify the Drupal system itself.
+It is intended for coding, maintenance, upgrade, diagnostic, and controlled operations agents working on the Drupal system itself.
 
-Examples include:
+It is not a content-management endpoint for agents working with production content. It does not currently expose Drupal content entities, media, taxonomy, users, or editorial workflows through Drupal's runtime permission system.
 
-* coding agents
-* maintenance agents
-* upgrade assistants
-* dependency-management agents
-* project-diagnostic tools
-* controlled DevOps workflows
-
-DriftCore is not currently a content-management MCP endpoint.
-
-It does not expose Drupal content entities, media libraries, taxonomy, or editorial workflows as an agent-facing CMS interface. Those capabilities belong to a content-facing integration implemented through Drupal’s own authentication, permissions, entity APIs, and workflow systems.
-
-The two approaches are complementary:
+Those are complementary layers:
 
 ```text
 Content and business agents
@@ -311,49 +393,59 @@ DriftCore
 Project context, Drush, Composer, and guarded operations
 ```
 
-A Drupal project could use both layers: one for agents working with the information managed by Drupal, and another for agents working safely on the Drupal project.
+A Drupal installation could use both: one interface for agents working with information managed by Drupal, and DriftCore for agents working safely on the Drupal project.
 
 DriftCore is also not currently:
 
 * a multi-agent orchestration platform
-* a general-purpose command sandbox
-* an SDK generator
-* a replacement for Drupal authentication
-* a replacement for Drupal entity access control
+* a general-purpose sandbox for untrusted code
+* a generated SDK platform
+* a replacement for Drupal authentication or entity access control
 
-## Deferred and placeholder components
+The separate runner, general sandbox, and generated SDK concepts have been explicitly deferred. Known workflow sequencing and safety boundaries remain inside `packages/server`.
 
-Some source files represent deferred or placeholder capabilities rather than completed product features.
+## Project documentation
 
-These include:
+* [Architecture](docs/ai/ARCHITECTURE.md)
+* [Codebase map](docs/ai/CODEBASE_MAP.md)
+* [Commands](docs/ai/COMMANDS.md)
+* [Deployment](docs/ai/DEPLOYMENT.md)
+* [Security and risks](docs/ai/SECURITY_AND_RISKS.md)
+* [Testing](docs/ai/TESTING.md)
+* [Runner, sandbox, and SDK decision](docs/decisions/runner-sandbox-sdk.md)
 
-* general sandbox execution
-* SDK generation
-* broader schema discovery
-* configuration discovery
-* state-changing operational workflows
+## Testing
 
-Their presence in the repository should not be interpreted as evidence that those capabilities are currently implemented.
+Run the server test suite:
+
+```bash
+npm --prefix packages/server test
+```
+
+Run the TypeScript validation without emitting files:
+
+```bash
+npm --prefix packages/server run lint
+```
+
+Run the HTTP integration smoke test:
+
+```bash
+npm --prefix packages/server run integration
+```
 
 ## Roadmap
 
-Planned work includes:
+Near-term work includes:
 
-* stabilizing and versioning public response contracts
-* expanding contract and compatibility tests
-* adding authentication and localhost enforcement
-* adding sensitive-data redaction
-* adding rate limiting
-* replacing static schema templates with discovered Drupal facts
-* replacing static configuration templates with discovered project configuration
-* adding workflow primitives for:
-
-  * inspect
-  * plan
-  * preview
-  * apply
-  * verify
+* stabilizing and versioning the public transport and response contracts
+* expanding contract and workflow coverage
+* replacing static template resources with project-discovered data where appropriate
+* strengthening security for any deployment beyond a trusted local environment
+* broadening the set of bounded Drupal maintenance workflows
+* improving packaging and client integration documentation
 
 ## License
 
 MIT
+::: 
