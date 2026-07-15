@@ -7,7 +7,7 @@ import {
   DRIFTCORE_RESOURCE_URIS,
   registerDriftCoreResources,
 } from "../mcp/resources.js";
-import { createState } from "./testUtils.js";
+import { createState, createTempProject } from "./testUtils.js";
 import type { OperationMeta, ServerState } from "../types.js";
 
 const expectedResources = [
@@ -87,5 +87,45 @@ test("registerDriftCoreResources reads every resource through the operation wrap
     assert.ok(operations.every((operation) => operation.kind === "resource"));
   } finally {
     await closeClientAndServer(client, server);
+  }
+});
+
+test("registerDriftCoreResources maps each URI to its distinct project fact", async () => {
+  const fixture = createTempProject({ createConfigSyncDir: "project" });
+  const { client, server } = await createConnectedClient(createState(fixture.config));
+
+  try {
+    const readEnvelope = async (uri: string) => {
+      const result = await client.readResource({ uri });
+      const content = result.contents[0];
+
+      assert.ok(content && "text" in content);
+      if (!content || !("text" in content)) {
+        assert.fail("expected text resource content");
+      }
+      return JSON.parse(content.text) as { status: string; data?: Record<string, unknown> };
+    };
+
+    const manifest = await readEnvelope("driftcore://project/manifest");
+    assert.equal(manifest.status, "ok");
+    assert.equal(manifest.data?.schema_version, "0.2.0");
+
+    const modules = await readEnvelope("driftcore://project/modules");
+    assert.equal(modules.status, "degraded");
+    assert.ok(Array.isArray(modules.data?.modules));
+    assert.ok(Array.isArray(modules.data?.themes));
+
+    const configLayout = await readEnvelope("driftcore://project/config-layout");
+    assert.equal(configLayout.status, "ok");
+    assert.equal(typeof configLayout.data?.sync_directory, "string");
+    assert.equal(configLayout.data?.detection_method, "filesystem");
+
+    const checks = await readEnvelope("driftcore://project/checks");
+    assert.equal(checks.status, "ok");
+    assert.equal(checks.data?.drupal_root_valid, true);
+    assert.equal(checks.data?.composer_json_present, true);
+  } finally {
+    await closeClientAndServer(client, server);
+    fixture.cleanup();
   }
 });
