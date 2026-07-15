@@ -466,7 +466,7 @@ export function toMcpToolResult(
 ): CallToolResult;
 ```
 
-- [ ] **Step 1: Add exact production dependencies**
+- [x] **Step 1: Add exact production dependencies**
 
 Run:
 
@@ -478,7 +478,7 @@ npm --prefix packages/server install --save-exact \
 
 Do not install `@modelcontextprotocol/server`; that package belongs to the v2 beta line.
 
-- [ ] **Step 2: Write failing result-adapter tests**
+- [x] **Step 2: Write failing result-adapter tests**
 
 Create `packages/server/src/__tests__/mcpResultAdapter.test.ts` with tests for:
 
@@ -517,7 +517,7 @@ test("toMcpToolResult marks domain errors as MCP errors", () => {
 });
 ```
 
-- [ ] **Step 3: Verify tests fail**
+- [x] **Step 3: Verify tests fail**
 
 ```bash
 npm --prefix packages/server test
@@ -529,13 +529,13 @@ Expected:
 Cannot find module ../mcp/resultAdapter.js
 ```
 
-- [ ] **Step 4: Implement the adapter**
+- [x] **Step 4: Implement the adapter**
 
 Use the v1 SDK’s `CallToolResult` type. Preserve the entire domain envelope as formatted JSON text.
 
 Only include `structuredContent` if it is accepted by the installed v1.29.0 type. Do not use `as any` to force unsupported protocol fields.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1682,7 +1682,7 @@ Baseline commit: 7cb965f97bd457eeff61ebde6178a228589e3519
 Baseline test count: 89 passing tests before Task 1 changes; 90 passing tests after adding baselineSurface.test.ts.
 Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline). Commit 0f528a9 (docs: record MCP migration baseline) then marked Task 1 complete and recorded the verified baseline in this Progress Log.
 Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Committed as 42aab6e (refactor: separate server state from transports).
-Task 3:
+Task 3: Installed @modelcontextprotocol/sdk 1.29.0 and zod 4.4.3. Added a typed result adapter with text and structured response envelopes; only error and timeout map to MCP errors. Tests cover ok, degraded, error, timeout, and not_configured. SDK v1.29.0 directly supports structuredContent. The default suite exposed a full-suite-only legacy STDIO test timeout caused by its 2-second polling cap under subprocess contention; the cap was extended to 10 seconds and the default 96-test suite passed. Commit pending.
 Task 4:
 Task 5:
 Task 6:

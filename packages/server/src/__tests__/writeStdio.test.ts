@@ -34,7 +34,7 @@ async function emitLine(mock: MockReadline, payload: unknown) {
 }
 
 async function waitForWrites(mock: MockReadline, expectedCount: number) {
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  for (let attempt = 0; attempt < 1000; attempt += 1) {
     if (mock.writes.length >= expectedCount) {
       return;
     }
