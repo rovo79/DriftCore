@@ -293,7 +293,7 @@ PASS baselineSurface.test
 all pre-existing tests still pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/execplans/2026-07-15-standard-mcp-stdio-migration.md \
@@ -1680,7 +1680,7 @@ The implementing agent must maintain this section during execution.
 ```text
 Baseline commit: 7cb965f97bd457eeff61ebde6178a228589e3519
 Baseline test count: 89 passing tests before Task 1 changes; 90 passing tests after adding baselineSurface.test.ts.
-Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Commit pending.
+Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline).
 Task 2:
 Task 3:
 Task 4:
