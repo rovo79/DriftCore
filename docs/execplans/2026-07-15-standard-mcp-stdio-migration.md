@@ -334,7 +334,7 @@ export function createServerState(
 - Existing `createMCPServer(options)` remains available for legacy HTTP/custom-STDIO compatibility.
 - The new MCP adapter in later tasks consumes `createServerState()`.
 
-- [ ] **Step 1: Write the failing state-construction test**
+- [x] **Step 1: Write the failing state-construction test**
 
 Create `packages/server/src/__tests__/serverState.test.ts`:
 
@@ -358,7 +358,7 @@ test("createServerState assembles resources and tools without starting a transpo
 });
 ```
 
-- [ ] **Step 2: Verify the new test fails**
+- [x] **Step 2: Verify the new test fails**
 
 ```bash
 npm --prefix packages/server test
@@ -370,7 +370,7 @@ Expected failure:
 Cannot find module ../serverState.js
 ```
 
-- [ ] **Step 3: Extract state construction**
+- [x] **Step 3: Extract state construction**
 
 Move the configuration loading, binary validation, rate limiter construction, `withOperationLogging`, and `ServerState` assembly currently inside `createMCPServer()` into `createServerState()`.
 
@@ -414,7 +414,7 @@ export { createServerState } from "./serverState.js";
 
 Do not rename or change domain functions.
 
-- [ ] **Step 4: Verify all tests**
+- [x] **Step 4: Verify all tests**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1680,8 +1680,8 @@ The implementing agent must maintain this section during execution.
 ```text
 Baseline commit: 7cb965f97bd457eeff61ebde6178a228589e3519
 Baseline test count: 89 passing tests before Task 1 changes; 90 passing tests after adding baselineSurface.test.ts.
-Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline).
-Task 2:
+Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline). Commit 0f528a9 (docs: record MCP migration baseline) then marked Task 1 complete and recorded the verified baseline in this Progress Log.
+Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Commit pending.
 Task 3:
 Task 4:
 Task 5:
