@@ -10,3 +10,11 @@ export const ScaffoldInput = z.object({
     .max(64),
   target_type: z.literal("module"),
 }).strict();
+
+export const PreviewTokenInput = z.object({
+  preview_token: z.string().min(1),
+}).strict();
+
+export const ScaffoldApplyInput = ScaffoldInput.extend({
+  preview_token: z.string().min(1),
+}).strict();
