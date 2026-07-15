@@ -689,7 +689,7 @@ export function registerReadOnlyTools(
 ): void;
 ```
 
-- [ ] **Step 1: Add schema tests**
+- [x] **Step 1: Add schema tests**
 
 Assert:
 
@@ -701,7 +701,7 @@ ScaffoldInput rejects paths and punctuation
 ScaffoldInput rejects target_type:"theme"
 ```
 
-- [ ] **Step 2: Add MCP client tests for read-only tools**
+- [x] **Step 2: Add MCP client tests for read-only tools**
 
 Assert `tools/list` includes:
 
@@ -725,7 +725,7 @@ drift_scaffold_plan
 
 Verify each result preserves the existing domain envelope in JSON text.
 
-- [ ] **Step 3: Verify failure**
+- [x] **Step 3: Verify failure**
 
 ```bash
 npm --prefix packages/server test
@@ -733,7 +733,7 @@ npm --prefix packages/server test
 
 Expected failure because tool modules do not exist.
 
-- [ ] **Step 4: Implement the schemas and registrations**
+- [x] **Step 4: Implement the schemas and registrations**
 
 Map tool handlers exactly:
 
@@ -754,7 +754,7 @@ Every handler must:
 3. delegate to the existing domain function
 4. pass the response through `toMcpToolResult()`
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 npm --prefix packages/server run lint
@@ -768,7 +768,7 @@ all read tools list and call successfully through an SDK client
 all legacy tests pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/mcp/toolSchemas.ts \
@@ -1684,7 +1684,7 @@ Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-
 Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Committed as 42aab6e (refactor: separate server state from transports).
 Task 3: Installed @modelcontextprotocol/sdk 1.29.0 and zod 4.4.3. Added a typed result adapter with text and structured response envelopes; only error and timeout map to MCP errors. Tests cover ok, degraded, error, timeout, and not_configured. SDK v1.29.0 directly supports structuredContent. The default suite exposed a full-suite-only legacy STDIO test timeout caused by its 2-second polling cap under subprocess contention; the cap was extended to 10 seconds and the default 96-test suite passed. Committed as 14d721b (feat: add supported MCP SDK and result adapter).
 Task 4: Registered exactly four authoritative project resources through McpServer. SDK Client and linked InMemoryTransport tests list only those resources, prove static template identifiers are absent, read all four JSON envelopes, and assert every read used state.runOperation with kind resource. Tests use a null-config deterministic ServerState and do not access a Drupal project. Review Gate 4 added a deterministic temporary-project mapping regression that distinguishes all four domain envelopes and fails when a handler is swapped. Lint and the 99-test suite passed. Committed as f462bce (feat: expose project facts as MCP resources) and da3f16f (test: distinguish MCP resource mappings).
-Task 5:
+Task 5: Added Zod v4 EmptyInput and ScaffoldInput plus seven read-only MCP tool registrations. The SDK Client and linked InMemoryTransport tests list exactly those tools, validate all schema constraints, call composer_info, upgrade_assessment, and scaffold_plan through the client, preserve each complete envelope in text and structuredContent, enforce Task 3 isError mapping, and assert tool operation metadata. The red phase failed only because readTools.ts and toolSchemas.ts were absent. Tests use a deterministic temporary project with a fixture-local fake Composer executable; no live project or developer binary is used. Lint and the 102-test suite passed. Committed as bb3ac7c (feat: expose DriftCore read tools through MCP).
 Task 6:
 Task 7:
 Task 8:
