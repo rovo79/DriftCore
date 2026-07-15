@@ -579,7 +579,7 @@ export function registerDriftCoreResources(
 ): void;
 ```
 
-- [ ] **Step 1: Write failing resource-registration tests**
+- [x] **Step 1: Write failing resource-registration tests**
 
 The test must create an SDK `McpServer`, register resources, connect it to an in-memory transport or SDK client transport, then assert:
 
@@ -593,7 +593,7 @@ resources/read driftcore://project/checks returns JSON
 
 Inject deterministic resource functions through the `ServerState` test fixture where existing tests already support overrides. If state does not currently support function injection, mock the filesystem/CLI dependencies using the same fixtures as existing project resource tests. Do not add test-only behavior to production APIs.
 
-- [ ] **Step 2: Verify failure before implementation**
+- [x] **Step 2: Verify failure before implementation**
 
 ```bash
 npm --prefix packages/server test
@@ -605,7 +605,7 @@ Expected:
 Cannot find module ../mcp/resources.js
 ```
 
-- [ ] **Step 3: Implement resource registration**
+- [x] **Step 3: Implement resource registration**
 
 Register these exact resources:
 
@@ -641,7 +641,7 @@ Return:
 
 Do not register static schema/config templates.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1683,7 +1683,7 @@ Baseline test count: 89 passing tests before Task 1 changes; 90 passing tests af
 Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline). Commit 0f528a9 (docs: record MCP migration baseline) then marked Task 1 complete and recorded the verified baseline in this Progress Log.
 Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Committed as 42aab6e (refactor: separate server state from transports).
 Task 3: Installed @modelcontextprotocol/sdk 1.29.0 and zod 4.4.3. Added a typed result adapter with text and structured response envelopes; only error and timeout map to MCP errors. Tests cover ok, degraded, error, timeout, and not_configured. SDK v1.29.0 directly supports structuredContent. The default suite exposed a full-suite-only legacy STDIO test timeout caused by its 2-second polling cap under subprocess contention; the cap was extended to 10 seconds and the default 96-test suite passed. Committed as 14d721b (feat: add supported MCP SDK and result adapter).
-Task 4:
+Task 4: Registered exactly four authoritative project resources through McpServer. SDK Client and linked InMemoryTransport tests list only those resources, prove static template identifiers are absent, read all four JSON envelopes, and assert every read used state.runOperation with kind resource. Tests use a null-config deterministic ServerState and do not access a Drupal project. Lint and the 98-test suite passed. Commit pending.
 Task 5:
 Task 6:
 Task 7:
