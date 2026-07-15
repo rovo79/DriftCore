@@ -55,23 +55,19 @@ DriftCore runs alongside a local or containerized Drupal codebase and provides:
   - optional `data`
   - optional `error`
 
-## What DriftCore is not
+## Current boundaries
 
-To avoid ambiguity:
+DriftCore is intentionally focused on Drupal project operations.
 
-- It is **not** a multi-agent platform.
-- It is **not** a sandbox execution engine.
-- It is **not** an SDK generator.
-- It is **not** a Drupal content-management MCP endpoint running inside Drupal.
+It is not currently:
 
-The following modules/packages currently exist as placeholders or templates and should not be treated as implemented production features:
+- a content-management MCP endpoint
+- a multi-agent orchestration platform
+- a general-purpose sandbox
+- an SDK generator
+- a replacement for Drupal authentication or entity access control
 
-- `packages/server/src/features/sandboxExecution.ts` → `executeInSandbox` (stub)
-- `packages/server/src/features/sdkGeneration.ts` → `generateSDK` (stub)
-- `packages/server/src/features/schemaResources.ts` (static template resources)
-- `packages/agent-runner` (placeholder package)
-
-Milestone 7 records the current disposition for the speculative pieces in `docs/decisions/runner-sandbox-sdk.md`: the runner, sandbox, and SDK generator are deferred, not active product work.
+Placeholder and deferred packages are documented below and should not be interpreted as implemented product capabilities.
 
 ## Quick start
 
