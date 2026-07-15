@@ -1,8 +1,40 @@
 # DriftCore
 
-DriftCore is a Drupal-aware MCP operations server that exposes project context, Drush/Composer inspection, and guarded workflow primitives for AI-assisted development.
+> A Drupal project operations server for AI coding and maintenance agents.
 
-> Status: experimental. Production code is currently in `packages/server`.
+DriftCore gives AI agents structured, authoritative context about a Drupal codebase and guarded access to Drupal engineering workflows through the Model Context Protocol.
+
+It runs alongside a local or containerized Drupal project and helps agents inspect and safely operate on the system using Drupal-aware filesystem discovery, Drush, Composer, and explicit workflow controls.
+
+DriftCore operates on the **project and engineering plane**:
+
+* understanding the Drupal project
+* inspecting modules, themes, configuration, and dependencies
+* diagnosing development and runtime conditions
+* planning and previewing changes
+* applying approved operations
+* verifying the resulting state
+
+It does not expose Drupal’s production content as an agent-facing CMS API. Content entities, media, taxonomy, and editorial workflows belong to a separate **content plane**, ideally implemented through Drupal’s own authentication, permissions, and entity APIs.
+
+```text
+Content and business agents
+          ↓
+Drupal content MCP
+          ↓
+Entities, media, taxonomy, editorial workflows
+
+
+Coding and maintenance agents
+          ↓
+DriftCore
+          ↓
+Project context, Drush, Composer, and guarded operations
+```
+
+These approaches are complementary. A Drupal installation could use a content-facing MCP integration for agents working with the site’s information while using DriftCore for agents working on the Drupal system itself.
+
+> Status: Experimental. Production code is currently located in `packages/server`.
 
 ## What DriftCore does today
 
