@@ -429,7 +429,7 @@ all commands exit 0
 legacy HTTP and custom STDIO behavior remains unchanged
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/index.ts \
@@ -1681,7 +1681,7 @@ The implementing agent must maintain this section during execution.
 Baseline commit: 7cb965f97bd457eeff61ebde6178a228589e3519
 Baseline test count: 89 passing tests before Task 1 changes; 90 passing tests after adding baselineSurface.test.ts.
 Task 1: Worktree created at /Users/rob/Dev/DriftCore-mcp-stdio on feat/standard-mcp-stdio. Baseline lint, test, and integration smoke test passed. The capability baseline test passed. Committed as 5352971 (test: lock DriftCore capability baseline). Commit 0f528a9 (docs: record MCP migration baseline) then marked Task 1 complete and recorded the verified baseline in this Progress Log.
-Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Commit pending.
+Task 2: Extracted runtime state construction into src/serverState.ts. The new unit test first failed because the module was absent, then passed without requiring a Drupal fixture. Lint, 91-test suite, and HTTP integration smoke test passed. Committed as 42aab6e (refactor: separate server state from transports).
 Task 3:
 Task 4:
 Task 5:
