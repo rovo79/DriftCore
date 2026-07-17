@@ -855,6 +855,24 @@ drift_config_export_apply         → runConfigExportApply
 drift_config_export_verify        → runConfigExportVerify
 ```
 
+**Accepted Review Gate 6 correction:** `drift_module_scaffold_verify` uses `ScaffoldInput`, not
+`EmptyInput`. `runModuleScaffoldVerify(state, input)` requires `machine_name` to resolve the
+target module directory and validate its expected files; legacy HTTP and STDIO callers also pass
+the same scaffold identity. The original `EmptyInput` contract could not identify which module to
+verify.
+
+| Tool | Input schema |
+|---|---|
+| `drift_cache_rebuild_preview` | `EmptyInput` |
+| `drift_cache_rebuild_apply` | `PreviewTokenInput` |
+| `drift_cache_rebuild_verify` | `EmptyInput` |
+| `drift_module_scaffold_preview` | `ScaffoldInput` |
+| `drift_module_scaffold_apply` | `ScaffoldApplyInput` |
+| `drift_module_scaffold_verify` | `ScaffoldInput` |
+| `drift_config_export_preview` | `EmptyInput` |
+| `drift_config_export_apply` | `PreviewTokenInput` |
+| `drift_config_export_verify` | `EmptyInput` |
+
 Do not combine preview, apply, and verify into one MCP call. The explicit lifecycle is part of DriftCore’s safety model.
 
 Do not allow MCP annotations or descriptions to imply that apply is read-only.
@@ -1685,7 +1703,7 @@ Task 2: Extracted runtime state construction into src/serverState.ts. The new un
 Task 3: Installed @modelcontextprotocol/sdk 1.29.0 and zod 4.4.3. Added a typed result adapter with text and structured response envelopes; only error and timeout map to MCP errors. Tests cover ok, degraded, error, timeout, and not_configured. SDK v1.29.0 directly supports structuredContent. The default suite exposed a full-suite-only legacy STDIO test timeout caused by its 2-second polling cap under subprocess contention; the cap was extended to 10 seconds and the default 96-test suite passed. Committed as 14d721b (feat: add supported MCP SDK and result adapter).
 Task 4: Registered exactly four authoritative project resources through McpServer. SDK Client and linked InMemoryTransport tests list only those resources, prove static template identifiers are absent, read all four JSON envelopes, and assert every read used state.runOperation with kind resource. Tests use a null-config deterministic ServerState and do not access a Drupal project. Review Gate 4 added a deterministic temporary-project mapping regression that distinguishes all four domain envelopes and fails when a handler is swapped. Lint and the 99-test suite passed. Committed as f462bce (feat: expose project facts as MCP resources) and da3f16f (test: distinguish MCP resource mappings).
 Task 5: Added Zod v4 EmptyInput and ScaffoldInput plus seven read-only MCP tool registrations. The SDK Client and linked InMemoryTransport tests list exactly those tools, validate all schema constraints, call composer_info, upgrade_assessment, and scaffold_plan through the client, preserve each complete envelope in text and structuredContent, enforce Task 3 isError mapping, and assert tool operation metadata. The red phase failed only because readTools.ts and toolSchemas.ts were absent. Tests use a deterministic temporary project with a fixture-local fake Composer executable; no live project or developer binary is used. Lint and the 102-test suite passed. Committed as bb3ac7c (feat: expose DriftCore read tools through MCP).
-Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP workflow registrations. SDK Client and linked InMemoryTransport tests list exactly those tools and exercise cache rebuild, module scaffold, and config export preview/apply/reuse/verify lifecycles with deterministic fixtures and a fixture-local fake Drush executable. Tests prove SDK schema rejection for missing and empty apply tokens, scoped cross-workflow token rejection, single-use token failures, envelope round-tripping through text and structuredContent, Task 3 isError mapping, and tool operation metadata. The red phase failed only because writeTools.ts and the two schema exports were absent. Lint and the 106-test suite passed. Committed as 2da8f6c (feat: expose guarded workflows through MCP).
+Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP workflow registrations. SDK Client and linked InMemoryTransport tests list exactly those tools and exercise cache rebuild, module scaffold, and config export preview/apply/reuse/verify lifecycles with deterministic fixtures and a fixture-local fake Drush executable. Tests prove SDK schema rejection for missing and empty apply tokens, scoped cross-workflow token rejection, single-use token failures, envelope round-tripping through text and structuredContent, Task 3 isError mapping, and tool operation metadata. The red phase failed only because writeTools.ts and the two schema exports were absent. Review Gate 6 corrected the plan: module scaffold verification remains target-specific and uses ScaffoldInput because the domain function requires machine_name to resolve the module directory; SDK coverage rejects missing and invalid identity. Lint and the 107-test suite passed. Committed as 2da8f6c (feat: expose guarded workflows through MCP).
 Task 7:
 Task 8:
 Task 9:

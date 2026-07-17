@@ -90,6 +90,23 @@ async function assertSchemaRejected(
   assert.equal(result.isError, true);
 }
 
+async function assertInputValidationRejected(
+  client: Client,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  const result = await client.callTool({ name, arguments: args });
+
+  assert.ok(isCallToolResult(result));
+  if (!isCallToolResult(result)) {
+    assert.fail("expected an immediate tool result");
+  }
+  assert.equal(result.isError, true);
+  const content = result.content.find((item) => item.type === "text");
+  assert.ok(content?.text);
+  assert.match(content.text, /Input validation error/);
+}
+
 test("Task 6 input schemas enforce guarded workflow contracts", () => {
   assert.deepEqual(PreviewTokenInput.parse({ preview_token: "token-value" }), {
     preview_token: "token-value",
@@ -150,6 +167,20 @@ test("registerWriteWorkflowTools lists exactly the guarded workflow tools", asyn
   try {
     const result = await client.listTools();
     assert.deepEqual(result.tools.map((tool) => tool.name), expectedToolNames);
+  } finally {
+    await closeClientAndServer(client, server);
+  }
+});
+
+test("registerWriteWorkflowTools validates scaffold identity before verification", async () => {
+  const { client, server } = await createConnectedClient(createState(null));
+
+  try {
+    await assertInputValidationRejected(client, "drift_module_scaffold_verify", {});
+    await assertInputValidationRejected(client, "drift_module_scaffold_verify", {
+      machine_name: "AcmeBlog",
+      target_type: "module",
+    });
   } finally {
     await closeClientAndServer(client, server);
   }
