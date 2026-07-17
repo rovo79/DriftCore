@@ -6,3 +6,4 @@ node_modules/
 .specify/
 .docs/
 specs/
+.DS_Store

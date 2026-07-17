@@ -12,7 +12,9 @@
     "start:http": "node dist/bin/http.js"
   },
   "dependencies": {
-    "yargs": "^17.7.2"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "yargs": "^17.7.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
