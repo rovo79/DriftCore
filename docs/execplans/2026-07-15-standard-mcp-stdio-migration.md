@@ -934,7 +934,7 @@ export async function runMcpStdio(
 ): Promise<void>;
 ```
 
-- [ ] **Step 1: Write a server capability test**
+- [x] **Step 1: Write a server capability test**
 
 Connect an SDK client to the new server using an in-memory transport and verify:
 
@@ -948,7 +948,7 @@ resources/read succeeds
 tools/call succeeds
 ```
 
-- [ ] **Step 2: Verify failure**
+- [x] **Step 2: Verify failure**
 
 ```bash
 npm --prefix packages/server test
@@ -956,7 +956,7 @@ npm --prefix packages/server test
 
 Expected failure because `mcp/server.ts` does not exist.
 
-- [ ] **Step 3: Implement server composition**
+- [x] **Step 3: Implement server composition**
 
 `createDriftCoreMcpServer(state)` must:
 
@@ -975,7 +975,7 @@ return server;
 
 Read the version from a generated build constant or JSON import supported by the existing TypeScript configuration. Do not hardcode a second independent version string without a synchronization test.
 
-- [ ] **Step 4: Implement the STDIO runner**
+- [x] **Step 4: Implement the STDIO runner**
 
 `src/bin/mcp.ts` must:
 
@@ -988,7 +988,7 @@ Read the version from a generated build constant or JSON import supported by the
 
 The MCP protocol stream on stdout must contain only protocol messages.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1002,7 +1002,7 @@ MCP initialization and capability tests pass
 legacy custom STDIO tests still pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/mcp/server.ts \
@@ -1704,7 +1704,7 @@ Task 3: Installed @modelcontextprotocol/sdk 1.29.0 and zod 4.4.3. Added a typed 
 Task 4: Registered exactly four authoritative project resources through McpServer. SDK Client and linked InMemoryTransport tests list only those resources, prove static template identifiers are absent, read all four JSON envelopes, and assert every read used state.runOperation with kind resource. Tests use a null-config deterministic ServerState and do not access a Drupal project. Review Gate 4 added a deterministic temporary-project mapping regression that distinguishes all four domain envelopes and fails when a handler is swapped. Lint and the 99-test suite passed. Committed as f462bce (feat: expose project facts as MCP resources) and da3f16f (test: distinguish MCP resource mappings).
 Task 5: Added Zod v4 EmptyInput and ScaffoldInput plus seven read-only MCP tool registrations. The SDK Client and linked InMemoryTransport tests list exactly those tools, validate all schema constraints, call composer_info, upgrade_assessment, and scaffold_plan through the client, preserve each complete envelope in text and structuredContent, enforce Task 3 isError mapping, and assert tool operation metadata. The red phase failed only because readTools.ts and toolSchemas.ts were absent. Tests use a deterministic temporary project with a fixture-local fake Composer executable; no live project or developer binary is used. Lint and the 102-test suite passed. Committed as bb3ac7c (feat: expose DriftCore read tools through MCP).
 Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP workflow registrations. SDK Client and linked InMemoryTransport tests list exactly those tools and exercise cache rebuild, module scaffold, and config export preview/apply/reuse/verify lifecycles with deterministic fixtures and a fixture-local fake Drush executable. Tests prove SDK schema rejection for missing and empty apply tokens, scoped cross-workflow token rejection, single-use token failures, envelope round-tripping through text and structuredContent, Task 3 isError mapping, and tool operation metadata. The red phase failed only because writeTools.ts and the two schema exports were absent. Review Gate 6 corrected the plan: module scaffold verification remains target-specific and uses ScaffoldInput because the domain function requires machine_name to resolve the module directory; SDK coverage rejects missing and invalid identity. Lint and the 107-test suite passed. Committed as 2da8f6c (feat: expose guarded workflows through MCP).
-Task 7:
+Task 7: Implemented createDriftCoreMcpServer with the package.json version and all four resources plus sixteen tools; added an import-safe runMcpStdio and separate STDIO executable with --config support and stderr-only logging. Configuration/argument startup failures exit 1. The first server-test build failed on the absent server module. Five focused tests now cover SDK initialization, exact discovery, resource/tool calls, real subprocess protocol-only stdout, operational stderr, malformed/missing configuration and CLI arguments, importable runner failure propagation, help output, and clean EOF exit. Review Gate 7: lint, build, 112 tests (0 failures), and legacy HTTP integration passed. Existing REST/custom STDIO files remain unchanged; existing compatibility and guarded workflow tests pass. Consumer project discovery/packaging, packed-client proof, and Inspector validation remain deferred to Tasks 8-12.
 Task 8:
 Task 9:
 Task 10:
