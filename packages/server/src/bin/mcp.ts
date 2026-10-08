@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Console } from "node:console";
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -35,7 +36,8 @@ async function main(): Promise<void> {
 }
 
 // Importing the runner must not launch a process or attach stdin listeners.
-if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+// npm's executable is a symlink; Node resolves import.meta.url to the real file.
+if (process.argv[1] && pathToFileURL(realpathSync(resolve(process.argv[1]))).href === import.meta.url) {
   main().catch((error: unknown) => {
     logger.error("MCP STDIO server failed:", error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

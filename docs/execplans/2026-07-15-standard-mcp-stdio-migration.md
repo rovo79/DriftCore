@@ -1127,8 +1127,11 @@ Reject if a standard Drupal Composer project still requires a config file.
 **Files:**
 - Modify: `packages/server/package.json`
 - Modify: `packages/server/package-lock.json`
+- Modify: `packages/server/src/bin/mcp.ts`
+- Modify: `packages/server/README.md`
+- Create: `packages/server/LICENSE`
 - Create: `packages/server/src/__tests__/packageMetadata.test.ts`
-- Create: `packages/server/integration/packedMcpSmoke.ts`
+- Create: `packages/server/src/integration/packedMcpSmoke.ts`
 
 **Interfaces:**
 - Produces the executable:
@@ -1137,7 +1140,7 @@ Reject if a standard Drupal Composer project still requires a config file.
 driftcore
 ```
 
-- [ ] **Step 1: Add package metadata tests**
+- [x] **Step 1: Add package metadata tests**
 
 Assert `package.json` contains:
 
@@ -1152,7 +1155,9 @@ Assert `package.json` contains:
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "!dist/__tests__",
+    "!dist/integration"
   ],
   "engines": {
     "node": ">=20"
@@ -1167,7 +1172,7 @@ If `README.md` or `LICENSE` do not exist inside `packages/server`, either:
 
 The packed artifact must contain its own usable README and license.
 
-- [ ] **Step 2: Modify scripts**
+- [x] **Step 2: Modify scripts**
 
 Add:
 
@@ -1187,7 +1192,7 @@ Keep `start:http` during compatibility.
 
 Remove or rename the ambiguous current `start:stdio`; it must not continue to imply that the custom action protocol is standard MCP.
 
-- [ ] **Step 3: Write packed artifact smoke test**
+- [x] **Step 3: Write packed artifact smoke test**
 
 `packedMcpSmoke.ts` must:
 
@@ -1209,7 +1214,7 @@ Remove or rename the ambiguous current `start:stdio`; it must not continue to im
 
 The test must use the packed artifact, not `dist/bin/mcp.js` directly.
 
-- [ ] **Step 4: Verify package contents and smoke test**
+- [x] **Step 4: Verify package contents and smoke test**
 
 ```bash
 npm --prefix packages/server run pack:check
@@ -1228,7 +1233,7 @@ read-only tool call works
 process closes cleanly
 ```
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1243,7 +1248,7 @@ Expected:
 all commands exit 0
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/package.json \
@@ -1706,7 +1711,7 @@ Task 5: Added Zod v4 EmptyInput and ScaffoldInput plus seven read-only MCP tool 
 Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP workflow registrations. SDK Client and linked InMemoryTransport tests list exactly those tools and exercise cache rebuild, module scaffold, and config export preview/apply/reuse/verify lifecycles with deterministic fixtures and a fixture-local fake Drush executable. Tests prove SDK schema rejection for missing and empty apply tokens, scoped cross-workflow token rejection, single-use token failures, envelope round-tripping through text and structuredContent, Task 3 isError mapping, and tool operation metadata. The red phase failed only because writeTools.ts and the two schema exports were absent. Review Gate 6 corrected the plan: module scaffold verification remains target-specific and uses ScaffoldInput because the domain function requires machine_name to resolve the module directory; SDK coverage rejects missing and invalid identity. Lint and the 107-test suite passed. Committed as 2da8f6c (feat: expose guarded workflows through MCP).
 Task 7: Implemented createDriftCoreMcpServer with the package.json version and all four resources plus sixteen tools; added an import-safe runMcpStdio and separate STDIO executable with --config support and stderr-only logging. Configuration/argument startup failures exit 1. The first server-test build failed on the absent server module. Five focused tests now cover SDK initialization, exact discovery, resource/tool calls, real subprocess protocol-only stdout, operational stderr, malformed/missing configuration and CLI arguments, importable runner failure propagation, help output, and clean EOF exit. Review Gate 7: lint, build, 112 tests (0 failures), and legacy HTTP integration passed. Existing REST/custom STDIO files remain unchanged; existing compatibility and guarded workflow tests pass. Consumer project discovery/packaging, packed-client proof, and Inspector validation remain deferred to Tasks 8-12.
 Task 8: Added strict CLI parsing, project-root precedence, upward Drupal project discovery, conventional root derivation, and concise startup failure. Explicit legacy drupalRoot is preserved; --project-root overrides the root while retaining settings from an explicit --config. Environment/CWD config is bypassed when --project-root is given. Discovery is opt-in for MCP startup, preserving legacy config-only behavior. Review Gate 8: lint and build passed; 121 tests passed (0 failures); legacy HTTP integration passed.
-Task 9:
+Task 9: Packaged @driftcore/server 0.2.0 with the driftcore executable, Node >=20 metadata, a build-on-prepack hook, usable package README, and the MIT license declared by the root README. Standard start/start:mcp and explicit start:stdio:legacy scripts are present; start:http remains compatible. npm executable symlinks now pass the import-safe entrypoint guard. The smoke test lives under src/integration to match tsconfig rootDir; it installs the tarball into a clean temporary consumer with production dependencies only and no install scripts, then checks exact resources/tools, selected-project manifest and composer metadata, CLI-root and nested upward-discovery launches, protocol-only stdout, operational stderr, and unsignaled exit 0 after EOF. SDK process observation is confined to the integration harness. The final tarball contains 44 files and excludes source, compiled tests, integration harnesses, and node_modules. Review Gate 9: clean npm ci, lint, explicit build, 122 tests (0 failures), legacy HTTP integration, pack:check, and integration:mcp all passed on Linux with Node 24.19.0/npm 11.9.0. No tarballs or temporary consumers remain. Tasks 10-12, including MCP Inspector validation and real-project acceptance, remain pending; the PR remains draft and is not ready to merge.
 Task 10:
 Task 11:
 Final commit:

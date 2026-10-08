@@ -1,15 +1,20 @@
 {
   "name": "@driftcore/server",
-  "version": "0.1.0",
-  "description": "Baseline MCP server for DriftCore",
+  "version": "0.2.0",
+  "description": "Single-project Drupal-aware MCP server over STDIO",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --pretty --noEmit",
     "test": "npm run build && node --test dist/__tests__/*.test.js",
     "integration": "npm run build && node dist/integration/smoke.js",
-    "start:stdio": "node dist/bin/stdio.js",
-    "start:http": "node dist/bin/http.js"
+    "start:http": "node dist/bin/http.js",
+    "start": "node dist/bin/mcp.js",
+    "start:mcp": "node dist/bin/mcp.js",
+    "start:stdio:legacy": "node dist/bin/stdio.js",
+    "prepack": "npm run build",
+    "pack:check": "npm run build && npm pack --dry-run",
+    "integration:mcp": "npm run build && node dist/integration/packedMcpSmoke.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
@@ -19,5 +24,19 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "typescript": "^5.3.3"
+  },
+  "license": "MIT",
+  "bin": {
+    "driftcore": "./dist/bin/mcp.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "!dist/__tests__",
+    "!dist/integration"
+  ],
+  "engines": {
+    "node": ">=20"
   }
 }

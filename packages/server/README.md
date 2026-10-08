@@ -1,104 +1,103 @@
 # @driftcore/server
 
-Baseline MCP server that connects to a single Drupal project and exposes read-only resources and tools (Drush and Composer) for external agents.
+DriftCore connects an MCP client to one local Drupal project. The standard MCP
+STDIO server exposes four project resources, seven read-only tools, and nine
+guarded preview/apply/verify tools. The MCP client owns the process lifecycle.
 
 ## Requirements
 
-- Node.js 20+
-- npm 9+
-- A Drupal codebase checked out locally (for example `/Users/rob/Dev/drupal`)
-- Drush and Composer installed (the project’s `vendor/bin` copies work fine)
+- Node.js 20 or newer and npm.
+- A local Drupal codebase containing `web/core`, `docroot/core`, or `core`.
+- Drush and Composer for tools that execute those binaries. Filesystem metadata
+  inspection does not need a running database or those binaries.
 
-## Installation
+## Local packaged installation
 
-```bash
-cd packages/server
-npm install
+This package has not been published to npm. Build a local tarball from the source:
+
+```sh
+npm ci
+npm pack
 ```
 
-## Configuration
+Install that tarball in your consumer project:
 
-Create a JSON configuration file and point `DRIFTCORE_CONFIG` at it. Example:
+```sh
+npm install /absolute/path/to/driftcore-server-0.2.0.tgz
+```
 
-`/Users/rob/Dev/DriftCore/driftcore.config.json`
+Configure your MCP client to launch the installed executable directly (avoid
+`npm run` for MCP clients, since npm's script banners can write to stdout):
 
-```jsonc
+```json
 {
-  "drupalRoot": "/Users/rob/Dev/drupal/web",
-  "drushPath": "/Users/rob/Dev/drupal/vendor/bin/drush",
-  "composerPath": "/usr/local/bin/composer",
-  "customModuleDirs": ["web/modules/custom"],
-  "customThemeDirs": ["web/themes/custom"],
-  "maxParallelCli": 1,
-  "timeouts": {
-    "drushStatusMs": 10000,
-    "drushPmlMs": 15000,
-    "composerInfoMs": 8000,
-    "composerOutdatedMs": 30000
-  },
-  "cacheTtlMs": {
-    "projectManifest": 5000,
-    "pml": 5000
+  "mcpServers": {
+    "driftcore": {
+      "command": "/absolute/path/to/consumer/node_modules/.bin/driftcore",
+      "args": ["--project-root", "/absolute/path/to/drupal-project"]
+    }
   }
 }
 ```
 
-`drupalRoot` must exist and point to the Drupal installation root (`web/`). If omitted or invalid, every resource/tool reports `status="not_configured"` with `E_CONFIG_INVALID_ROOT`.
+## Project selection
 
-## Running the server
+`--project-root` accepts the Composer project root, not the nested Drupal root.
+DriftCore derives the Drupal root in order: `web/core`, `docroot/core`, then `core`.
+Without the flag, it resolves `--config`, then `DRIFTCORE_CONFIG`, then
+`driftcore.config.json` in the current working directory, then searches upward
+for Drupal Composer metadata or conventional Drupal directories.
 
-### STDIO transport
+Missing or invalid selected configuration fails startup instead of falling back.
+MCP startup also fails when no usable Drupal root is found. All operational logs
+and help output use stderr; stdout contains only MCP protocol messages.
 
-```bash
-cd packages/server
-DRIFTCORE_CONFIG=/path/to/driftcore.config.json npm run start:stdio
-```
-
-The stdio transport accepts JSON commands such as:
+Legacy configuration files still accept `drupalRoot` directly:
 
 ```json
-{"id":1,"action":"project_manifest"}
+{
+  "drupalRoot": "/absolute/path/to/project/web",
+  "drushPath": "/absolute/path/to/project/vendor/bin/drush",
+  "composerPath": "/usr/local/bin/composer",
+  "maxParallelCli": 1
+}
 ```
 
-### HTTP transport
+When both flags are given, `--project-root` overrides the config's Drupal root
+while retaining its other settings. With only `--project-root`, environment and
+CWD config files are ignored.
 
-```bash
-cd packages/server
-DRIFTCORE_CONFIG=/path/to/driftcore.config.json npm run start:http -- --port 8080
+## Legacy compatibility
+
+The existing REST HTTP and custom action-STDIO transports remain available:
+
+```sh
+DRIFTCORE_CONFIG=/absolute/path/to/config.json npm run start:stdio:legacy
+DRIFTCORE_CONFIG=/absolute/path/to/config.json npm run start:http -- --port 8080
 ```
 
-Endpoints (all `GET`):
+The legacy STDIO protocol accepts action messages such as
+`{"id":1,"action":"project_manifest"}`. It is not standard MCP. Legacy transports
+continue to use config files and their existing response envelopes.
 
-- `/health`
-- `/resources`
-- `/tools`
-- `/project-manifest`
-- `/drush/status`
-- `/drush/pml`
-- `/composer/info`
-- `/composer/outdated`
+## Source development and verification
 
-Each returns the shared response envelope (`status`, optional `data`, optional `error` with `code` and `message`).
-
-## Available tools/resources
-
-- `project_manifest` resource summarizing Drupal root, core version, Composer dependencies, custom modules/themes.
-- Tools:
-  - `drift.drush_status`
-  - `drift.drush_pml`
-  - `drift.composer_info`
-  - `drift.composer_outdated`
-
-All tools run from the configured `drupalRoot` with fixed arguments, obey per-tool timeouts, enforce `maxParallelCli`, and never mutate project files.
-
-## Testing
-
-```bash
-cd packages/server
-npm test        # Builds and runs node --test suites.
-npm run build   # Type-checks and emits dist/
-npm run integration   # Runs the HTTP transport smoke test
+```sh
+npm ci
+npm run lint
+npm run build
+npm test
+npm run integration
+npm run pack:check
+npm run integration:mcp
 ```
 
-The test suite covers schema resources, project manifest discovery, Drush/Composer tool parsing, and non-write guarantees. The integration smoke test exercises the HTTP transport endpoints.
+`start` and `start:mcp` run the standard MCP entry point. `integration` checks
+legacy HTTP. `integration:mcp` packs the package, installs it in an isolated
+consumer, and uses a real SDK client against the installed executable. It checks
+initialization, resources, tools, metadata reads, a read-only call, protocol-only
+stdout, and clean EOF shutdown. Temporary files are removed on success or failure.
 
+## License
+
+MIT. See the included LICENSE file.
