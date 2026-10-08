@@ -10,7 +10,7 @@ import { createMCPServer } from "../index.js";
 import { validateBinaryPaths } from "../config.js";
 import { createRateLimiter } from "../features/rateLimiter.js";
 import { mapCliResultToError, redactPaths } from "../features/errorMapping.js";
-import { stdioTransport } from "../transports/stdio.js";
+import { stdioTransport } from "../transports/legacyStdio.js";
 import type { CliExecutionResult } from "../features/sandboxExecution.js";
 import type { ServerConfig, ServerState } from "../types.js";
 
@@ -173,7 +173,7 @@ describe("security baseline", () => {
     }
   });
 
-  it("rejects STDIO lines larger than 1 MB", async () => {
+  it("rejects legacy action-STDIO lines larger than 1 MB", async () => {
     class MockReadline extends EventEmitter {
       public writes: string[] = [];
 
@@ -184,7 +184,7 @@ describe("security baseline", () => {
     }
 
     const mock = new MockReadline();
-    const transportPromise = stdioTransport(mock as unknown as Interface, createState());
+    const transportPromise = stdioTransport(mock as unknown as Interface, createState(), mock.write.bind(mock));
 
     mock.emit("line", "a".repeat(1048577));
     await new Promise((resolve) => setImmediate(resolve));

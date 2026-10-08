@@ -1280,6 +1280,9 @@ Do not claim success unless a clean temporary consumer can use the packed tarbal
 - Modify: `packages/server/src/index.ts`
 - Modify: legacy transport imports/tests
 - Modify: `packages/server/src/bin/http.ts`
+- Modify: `packages/server/package.json`
+- Modify: `packages/server/README.md`
+- Modify: `packages/server/src/integration/packedMcpSmoke.ts`
 - Create: `docs/decisions/standard-mcp-stdio.md`
 
 **Interfaces:**
@@ -1288,7 +1291,7 @@ Do not claim success unless a clean temporary consumer can use the packed tarbal
   - `npm run start:stdio:legacy`
   - `npm run start:http:legacy`
 
-- [ ] **Step 1: Rename custom STDIO files**
+- [x] **Step 1: Rename custom STDIO files**
 
 Use `git mv`:
 
@@ -1301,7 +1304,7 @@ git mv packages/server/src/bin/stdio.ts \
 
 Update imports and test names.
 
-- [ ] **Step 2: Rename HTTP script as legacy**
+- [x] **Step 2: Rename HTTP script as legacy**
 
 The existing route-per-operation REST interface is not Streamable HTTP MCP. Rename the npm script:
 
@@ -1313,7 +1316,7 @@ The existing route-per-operation REST interface is not Streamable HTTP MCP. Rena
 
 Do not implement `/mcp` in this plan.
 
-- [ ] **Step 3: Add the architecture decision**
+- [x] **Step 3: Add the architecture decision**
 
 Create `docs/decisions/standard-mcp-stdio.md` recording:
 
@@ -1336,7 +1339,7 @@ Include removal criteria for legacy transports:
 - HTTP API has either a documented independent use case or is removed
 ```
 
-- [ ] **Step 4: Verify all compatibility tests**
+- [x] **Step 4: Verify all compatibility tests**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1353,7 +1356,7 @@ legacy REST integration passes
 legacy custom STDIO tests pass
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src \
@@ -1712,7 +1715,7 @@ Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP wor
 Task 7: Implemented createDriftCoreMcpServer with the package.json version and all four resources plus sixteen tools; added an import-safe runMcpStdio and separate STDIO executable with --config support and stderr-only logging. Configuration/argument startup failures exit 1. The first server-test build failed on the absent server module. Five focused tests now cover SDK initialization, exact discovery, resource/tool calls, real subprocess protocol-only stdout, operational stderr, malformed/missing configuration and CLI arguments, importable runner failure propagation, help output, and clean EOF exit. Review Gate 7: lint, build, 112 tests (0 failures), and legacy HTTP integration passed. Existing REST/custom STDIO files remain unchanged; existing compatibility and guarded workflow tests pass. Consumer project discovery/packaging, packed-client proof, and Inspector validation remain deferred to Tasks 8-12.
 Task 8: Added strict CLI parsing, project-root precedence, upward Drupal project discovery, conventional root derivation, and concise startup failure. Explicit legacy drupalRoot is preserved; --project-root overrides the root while retaining settings from an explicit --config. Environment/CWD config is bypassed when --project-root is given. Discovery is opt-in for MCP startup, preserving legacy config-only behavior. Review Gate 8: lint and build passed; 121 tests passed (0 failures); legacy HTTP integration passed.
 Task 9: Packaged @driftcore/server 0.2.0 with the driftcore executable, Node >=20 metadata, a build-on-prepack hook, usable package README, and the MIT license declared by the root README. Standard start/start:mcp and explicit start:stdio:legacy scripts are present; start:http remains compatible. npm executable symlinks now pass the import-safe entrypoint guard. The smoke test lives under src/integration to match tsconfig rootDir; it installs the tarball into a clean temporary consumer with production dependencies only and no install scripts, then checks exact resources/tools, selected-project manifest and composer metadata, CLI-root and nested upward-discovery launches, protocol-only stdout, operational stderr, and unsignaled exit 0 after EOF. SDK process observation is confined to the integration harness. The final tarball contains 44 files and excludes source, compiled tests, integration harnesses, and node_modules. Review Gate 9: clean npm ci, lint, explicit build, 122 tests (0 failures), legacy HTTP integration, pack:check, and integration:mcp all passed on Linux with Node 24.19.0/npm 11.9.0. No tarballs or temporary consumers remain. Tasks 10-12, including MCP Inspector validation and real-project acceptance, remain pending; the PR remains draft and is not ready to merge.
-Task 10:
+Task 10: Renamed the custom STDIO entry point and dispatcher to legacyStdio.ts; updated imports and compatibility test labels. start:stdio:legacy now launches the renamed executable; start:http was renamed to start:http:legacy. HTTP help and operational logs explicitly describe legacy REST, and custom STDIO logs identify the legacy action protocol. Existing createMCPServer, routes, actions, envelopes, and guarded workflow behavior remain unchanged. Added docs/decisions/standard-mcp-stdio.md with primary SDK/STDIO choice, deferred backends/publication, and legacy removal criteria. Builds clear dist before compilation, and packed proof requires renamed files while rejecting obsolete compiled paths. Package README commands match the renamed scripts. Review Gate 10: clean npm ci, lint, explicit build, all 123 tests (0 failures), legacy HTTP integration, and packed MCP consumer proof passed. An additional subprocess check exposed a pre-existing feedback loop in the legacy executable: readline.write fed responses into the input parser. Independently reproduced on the pre-Task-10 executable, then fixed with a separate stdout writer and an injected writer for mock tests. The new real-subprocess regression proves consumer Composer metadata and exit 0 after EOF. CHANGELOG.md records the command renames and output fix. Additional checks proved the renamed HTTP npm command reports legacy REST help and exits 0. Seeding both obsolete compiled filenames and rebuilding proved they are removed. Tasks 11-12 remain pending; PR stays draft.
 Task 11:
 Final commit:
 Final test count:

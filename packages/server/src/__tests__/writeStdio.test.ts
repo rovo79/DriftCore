@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import type { Interface } from "node:readline";
-import { stdioTransport } from "../transports/stdio.js";
+import { stdioTransport } from "../transports/legacyStdio.js";
 import { createState } from "./testUtils.js";
 import { createWriteFixture } from "./writeTestUtils.js";
 
@@ -44,11 +44,11 @@ async function waitForWrites(mock: MockReadline, expectedCount: number) {
   throw new Error(`Timed out waiting for ${expectedCount} stdio writes`);
 }
 
-describe("write stdio actions", () => {
+describe("legacy action-STDIO write actions", () => {
   it("supports preview/apply/verify for cache, scaffold, and config export", async () => {
     const fixture = createWriteFixture();
     const mock = new MockReadline();
-    const transport = stdioTransport(mock as unknown as Interface, createState(fixture.config));
+    const transport = stdioTransport(mock as unknown as Interface, createState(fixture.config), mock.write.bind(mock));
 
     try {
       await emitLine(mock, { id: 1, action: "cache_rebuild_preview" });

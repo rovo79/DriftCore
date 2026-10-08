@@ -108,10 +108,13 @@ export async function runPackedMcpSmoke(): Promise<void> {
     const entry = packed[0] as { filename: string; files: Array<{ path: string }> };
     assert.equal(entry.filename, "driftcore-server-0.2.0.tgz");
     const files = entry.files.map((file) => file.path);
-    for (const required of ["dist/bin/mcp.js", "dist/bin/http.js", "dist/bin/stdio.js",
+    for (const required of ["dist/bin/mcp.js", "dist/bin/http.js", "dist/bin/legacyStdio.js",
+      "dist/transports/legacyStdio.js",
       "package.json", "README.md", "LICENSE"]) assert.ok(files.includes(required), required);
     assert.ok(!files.some((file) => file.startsWith("node_modules/") || file.startsWith("src/") ||
       file.startsWith("dist/__tests__/") || file.startsWith("dist/integration/")));
+    assert.ok(!files.includes("dist/bin/stdio.js"));
+    assert.ok(!files.includes("dist/transports/stdio.js"));
     const consumer = path.join(temporary, "consumer");
     fs.mkdirSync(consumer);
     fs.writeFileSync(path.join(consumer, "package.json"), JSON.stringify({ name: "clean-consumer", private: true }));

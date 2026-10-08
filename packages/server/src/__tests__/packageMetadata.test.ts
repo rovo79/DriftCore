@@ -23,8 +23,9 @@ test("npm package exposes the standard MCP executable with runtime metadata and 
   assert.match(fs.readFileSync(new URL("dist/bin/mcp.js", packageRoot), "utf8"), /^#!\/usr\/bin\/env node\n/);
   assert.equal(pkg.scripts.start, "node dist/bin/mcp.js");
   assert.equal(pkg.scripts["start:mcp"], pkg.scripts.start);
-  assert.equal(pkg.scripts["start:stdio:legacy"], "node dist/bin/stdio.js");
-  assert.equal(pkg.scripts["start:http"], "node dist/bin/http.js");
+  assert.equal(pkg.scripts["start:stdio:legacy"], "node dist/bin/legacyStdio.js");
+  assert.equal(pkg.scripts["start:http:legacy"], "node dist/bin/http.js");
   assert.equal(pkg.scripts["start:stdio"], undefined);
+  assert.equal(pkg.scripts["start:http"], undefined);
   assert.equal(pkg.dependencies["@modelcontextprotocol/sdk"], "1.29.0");
 });

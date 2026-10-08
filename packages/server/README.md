@@ -73,7 +73,7 @@ The existing REST HTTP and custom action-STDIO transports remain available:
 
 ```sh
 DRIFTCORE_CONFIG=/absolute/path/to/config.json npm run start:stdio:legacy
-DRIFTCORE_CONFIG=/absolute/path/to/config.json npm run start:http -- --port 8080
+DRIFTCORE_CONFIG=/absolute/path/to/config.json npm run start:http:legacy -- --port 8080
 ```
 
 The legacy STDIO protocol accepts action messages such as

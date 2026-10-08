@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 import http from "node:http";
-import { stdioTransport } from "./transports/stdio.js";
+import { stdioTransport } from "./transports/legacyStdio.js";
 import { httpTransport } from "./transports/http.js";
 import { createServerState } from "./serverState.js";
 import type { MCPServerOptions } from "./types.js";
@@ -21,7 +21,7 @@ export function createMCPServer(options: MCPServerOptions = {}) {
       return new Promise<http.Server>((resolve) => {
         server.listen(port, host, () => {
           serverState.logger.info?.(
-            `MCP server listening on http://${host}:${(server.address() as any)?.port ?? port}`,
+            `Legacy REST server listening on http://${host}:${(server.address() as any)?.port ?? port}`,
           );
           resolve(server);
         });

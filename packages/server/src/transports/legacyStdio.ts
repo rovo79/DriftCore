@@ -31,8 +31,12 @@ interface StdioRequest {
 
 const MAX_STDIO_LINE_LENGTH = 1048576;
 
-export async function stdioTransport(rl: Interface, state: ServerState) {
-  state.logger.info?.("Starting MCP STDIO transport");
+export async function stdioTransport(
+  rl: Interface,
+  state: ServerState,
+  write: (chunk: string) => void = (chunk) => { process.stdout.write(chunk); },
+) {
+  state.logger.info?.("Starting legacy action-STDIO transport");
 
   const handleRequest = async (request: StdioRequest) => {
     switch (request.action) {
@@ -178,7 +182,7 @@ export async function stdioTransport(rl: Interface, state: ServerState) {
   rl.on("line", (line) => {
     (async () => {
       if (Buffer.byteLength(line, "utf8") > MAX_STDIO_LINE_LENGTH) {
-        rl.write(
+        write(
           JSON.stringify({
             status: "error",
             error: {
@@ -194,7 +198,7 @@ export async function stdioTransport(rl: Interface, state: ServerState) {
       try {
         parsed = JSON.parse(line) as StdioRequest;
       } catch {
-        rl.write(
+        write(
           JSON.stringify({
             status: "error",
             error: { code: "E_PARSE", message: "STDIO input must be JSON" },
@@ -204,7 +208,7 @@ export async function stdioTransport(rl: Interface, state: ServerState) {
       }
 
       const response = await handleRequest(parsed);
-      rl.write(
+      write(
         JSON.stringify({
           id: parsed.id,
           action: parsed.action,
@@ -212,7 +216,7 @@ export async function stdioTransport(rl: Interface, state: ServerState) {
         }) + "\n",
       );
     })().catch((error) => {
-      rl.write(
+      write(
         JSON.stringify({
           status: "error",
           error: {
@@ -226,7 +230,7 @@ export async function stdioTransport(rl: Interface, state: ServerState) {
 
   return new Promise<void>((resolve) => {
     rl.on("close", () => {
-      state.logger.info?.("STDIO transport closed");
+      state.logger.info?.("Legacy action-STDIO transport closed");
       resolve();
     });
   });

@@ -4,17 +4,17 @@
   "description": "Single-project Drupal-aware MCP server over STDIO",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\" && tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --pretty --noEmit",
     "test": "npm run build && node --test dist/__tests__/*.test.js",
     "integration": "npm run build && node dist/integration/smoke.js",
-    "start:http": "node dist/bin/http.js",
     "start": "node dist/bin/mcp.js",
     "start:mcp": "node dist/bin/mcp.js",
-    "start:stdio:legacy": "node dist/bin/stdio.js",
+    "start:stdio:legacy": "node dist/bin/legacyStdio.js",
     "prepack": "npm run build",
     "pack:check": "npm run build && npm pack --dry-run",
-    "integration:mcp": "npm run build && node dist/integration/packedMcpSmoke.js"
+    "integration:mcp": "npm run build && node dist/integration/packedMcpSmoke.js",
+    "start:http:legacy": "node dist/bin/http.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
