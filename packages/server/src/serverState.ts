@@ -7,13 +7,18 @@ import { createRateLimiter } from "./features/rateLimiter.js";
 import { getWorkflowTools } from "./features/workflows/index.js";
 import type { MCPServerOptions, OperationMeta, ServerState } from "./types.js";
 
-export interface CreateServerStateOptions extends MCPServerOptions {}
+export interface CreateServerStateOptions extends MCPServerOptions {
+  projectRoot?: string;
+  discoverProject?: boolean;
+}
 
 export function createServerState(options: CreateServerStateOptions = {}): ServerState {
   const { logger = console } = options;
   const loadedConfig = loadServerConfig({
     logger,
     configPath: options.configPath,
+    projectRoot: options.projectRoot,
+    discoverProject: options.discoverProject,
   });
 
   if (!loadedConfig.config) {

@@ -1037,7 +1037,7 @@ export function parseCliArgs(argv: string[]): DriftCoreCliOptions;
 export function discoverProjectRoot(startPath: string): string | undefined;
 ```
 
-- [ ] **Step 1: Write CLI parsing tests**
+- [x] **Step 1: Write CLI parsing tests**
 
 Cover:
 
@@ -1049,7 +1049,7 @@ unknown option rejected
 missing option value rejected
 ```
 
-- [ ] **Step 2: Write project discovery tests**
+- [x] **Step 2: Write project discovery tests**
 
 Use temporary directories to cover:
 
@@ -1064,7 +1064,7 @@ filesystem root terminates cleanly
 
 Do not require a real Composer install.
 
-- [ ] **Step 3: Implement configuration precedence**
+- [x] **Step 3: Implement configuration precedence**
 
 Resolve project/config in this exact order:
 
@@ -1090,7 +1090,7 @@ If an explicit legacy config supplies `drupalRoot`, preserve it.
 
 If no project can be resolved, startup must fail with a concise stderr message and exit code 1. Do not start a degraded MCP server with no useful project context.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1104,7 +1104,7 @@ CLI precedence and discovery tests pass
 legacy DRIFTCORE_CONFIG behavior still passes
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/cli.ts \
@@ -1705,7 +1705,7 @@ Task 4: Registered exactly four authoritative project resources through McpServe
 Task 5: Added Zod v4 EmptyInput and ScaffoldInput plus seven read-only MCP tool registrations. The SDK Client and linked InMemoryTransport tests list exactly those tools, validate all schema constraints, call composer_info, upgrade_assessment, and scaffold_plan through the client, preserve each complete envelope in text and structuredContent, enforce Task 3 isError mapping, and assert tool operation metadata. The red phase failed only because readTools.ts and toolSchemas.ts were absent. Tests use a deterministic temporary project with a fixture-local fake Composer executable; no live project or developer binary is used. Lint and the 102-test suite passed. Committed as bb3ac7c (feat: expose DriftCore read tools through MCP).
 Task 6: Added PreviewTokenInput and ScaffoldApplyInput plus nine guarded MCP workflow registrations. SDK Client and linked InMemoryTransport tests list exactly those tools and exercise cache rebuild, module scaffold, and config export preview/apply/reuse/verify lifecycles with deterministic fixtures and a fixture-local fake Drush executable. Tests prove SDK schema rejection for missing and empty apply tokens, scoped cross-workflow token rejection, single-use token failures, envelope round-tripping through text and structuredContent, Task 3 isError mapping, and tool operation metadata. The red phase failed only because writeTools.ts and the two schema exports were absent. Review Gate 6 corrected the plan: module scaffold verification remains target-specific and uses ScaffoldInput because the domain function requires machine_name to resolve the module directory; SDK coverage rejects missing and invalid identity. Lint and the 107-test suite passed. Committed as 2da8f6c (feat: expose guarded workflows through MCP).
 Task 7: Implemented createDriftCoreMcpServer with the package.json version and all four resources plus sixteen tools; added an import-safe runMcpStdio and separate STDIO executable with --config support and stderr-only logging. Configuration/argument startup failures exit 1. The first server-test build failed on the absent server module. Five focused tests now cover SDK initialization, exact discovery, resource/tool calls, real subprocess protocol-only stdout, operational stderr, malformed/missing configuration and CLI arguments, importable runner failure propagation, help output, and clean EOF exit. Review Gate 7: lint, build, 112 tests (0 failures), and legacy HTTP integration passed. Existing REST/custom STDIO files remain unchanged; existing compatibility and guarded workflow tests pass. Consumer project discovery/packaging, packed-client proof, and Inspector validation remain deferred to Tasks 8-12.
-Task 8:
+Task 8: Added strict CLI parsing, project-root precedence, upward Drupal project discovery, conventional root derivation, and concise startup failure. Explicit legacy drupalRoot is preserved; --project-root overrides the root while retaining settings from an explicit --config. Environment/CWD config is bypassed when --project-root is given. Discovery is opt-in for MCP startup, preserving legacy config-only behavior. Review Gate 8: lint and build passed; 121 tests passed (0 failures); legacy HTTP integration passed.
 Task 9:
 Task 10:
 Task 11:
