@@ -19,7 +19,8 @@ The only production code is in `packages/server`. It provides:
 - **Project manifest** — Drupal root, core version, composer metadata, custom module/theme dirs
 - **Drush inspection tools** — `drift.drush_status`, `drift.drush_pml`
 - **Composer inspection tools** — `drift.composer_info`, `drift.composer_outdated`
-- **HTTP and STDIO transports** — GET read routes, POST write apply routes, line-delimited JSON STDIO
+- **Standard MCP STDIO** — four connected-project resources and sixteen tools via the packaged `driftcore` executable
+- **Legacy REST and action-STDIO** — route-per-operation HTTP and line-delimited JSON actions retained for compatibility
 - **Structured response envelope** — `status` (`ok|degraded|error|timeout|not_configured`), optional `data`, optional `error`
 - **CLI execution wrapper** — `runCliCommand` with `shell: false`, timeouts, concurrency cap
 
@@ -111,14 +112,14 @@ cd packages/server && node --test dist/__tests__/projectManifest.test.js
 ## Start
 
 ```sh
-# STDIO transport
-npm --prefix packages/server run start:stdio
+# Standard MCP STDIO
+npm --prefix packages/server run start:mcp -- --project-root /abs/path/to/drupal-project
 
-# HTTP transport
-npm --prefix packages/server run start:http -- --port 8080
+# Legacy REST API
+DRIFTCORE_CONFIG=/abs/path/to/driftcore.config.json npm --prefix packages/server run start:http:legacy -- --port 8080
 
-# With explicit config
-DRIFTCORE_CONFIG=/abs/path/to/driftcore.config.json npm --prefix packages/server run start:stdio
+# Legacy DriftCore action-STDIO
+DRIFTCORE_CONFIG=/abs/path/to/driftcore.config.json npm --prefix packages/server run start:stdio:legacy
 ```
 
 ## Pre-PR Verification
@@ -136,15 +137,19 @@ npm --prefix packages/server run integration  # for transport/tooling changes
 
 ```
 packages/server/src/
-├── index.ts             # createMCPServer — wires config, tools, resources, transports
+├── index.ts             # createMCPServer — legacy compatibility composition
+├── serverState.ts       # shared state and operation logging
+├── projectRoot.ts       # consumer project discovery
 ├── config.ts            # loadServerConfig — path resolution, validation, defaults
 ├── types.ts             # Shared types, response envelope, status taxonomy
 ├── bin/
-│   ├── http.ts          # CLI entry point (yargs --port)
-│   └── stdio.ts         # CLI entry point
+│   ├── mcp.ts           # standard MCP executable
+│   ├── http.ts          # legacy REST entry point
+│   └── legacyStdio.ts   # legacy action-STDIO entry point
 ├── transports/
-│   ├── http.ts          # GET read routes and POST write apply routes
-│   └── stdio.ts         # Line-delimited JSON action dispatch
+│   ├── http.ts          # legacy REST routes
+│   └── legacyStdio.ts   # legacy JSON action dispatch
+├── mcp/                # SDK resources, tools, schemas and result adapter
 ├── features/
 │   ├── cache.ts         # TimedCache<T> — in-memory TTL cache
 │   ├── composerTools.ts # composer_info, composer_outdated handlers
@@ -165,7 +170,7 @@ packages/server/src/
 - Transport handlers are thin dispatchers. Business logic belongs in `features/*`.
 - All responses use the shared envelope: `{ status, data?, error? }`.
 - CLI tools use a fixed allowlist — no arbitrary user flags or shell access.
-- Config resolution: explicit path → `DRIFTCORE_CONFIG` env → `./driftcore.config.json`.
+- MCP config resolution: `--project-root` → `--config` → `DRIFTCORE_CONFIG` → CWD config → upward project discovery. Legacy transports retain config-file selection.
 
 ## Code Style and Conventions
 
@@ -228,7 +233,7 @@ Current known gaps (these are active priorities, not footnotes):
 
 - HTTP transport has **no auth**. Treat it as localhost-only until auth is added.
 - Error payloads may leak filesystem paths via stderr. Redaction mode is planned.
-- No rate limiting on HTTP endpoints.
+- Legacy REST has per-client-IP rate limiting when configuration is valid; it does not provide authentication.
 - Binary paths (drush, composer) are resolved but not allowlist-validated.
 - `spawn` uses `shell: false` and timeouts — preserve these invariants.
 

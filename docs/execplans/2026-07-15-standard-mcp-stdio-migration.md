@@ -1373,10 +1373,13 @@ git commit -m "docs: distinguish standard MCP from legacy transports"
 **Files:**
 - Modify: `README.md`
 - Modify: `docs/ai/ARCHITECTURE.md`
+- Modify: `docs/ai/CODEBASE_MAP.md`
 - Modify: `docs/ai/COMMANDS.md`
 - Modify: `docs/ai/DEPLOYMENT.md`
+- Modify: `docs/ai/HOTSPOTS.md`
 - Modify: `docs/ai/SECURITY_AND_RISKS.md`
 - Modify: `docs/ai/TESTING.md`
+- Modify: `AGENTS.md`
 - Modify: `packages/server/README.md` or create it if package packing requires it
 - Create: `packages/server/src/__tests__/readmeCommands.test.ts`
 
@@ -1385,7 +1388,7 @@ git commit -m "docs: distinguish standard MCP from legacy transports"
 - Documents source checkout instructions as contributor-only.
 - Clearly labels legacy transports.
 
-- [ ] **Step 1: Replace the README quick start**
+- [x] **Step 1: Replace the README quick start**
 
 The first installation example must use the packed/published package model:
 
@@ -1409,7 +1412,7 @@ Until the package is published, add an explicit development note showing the tar
 
 Do not present cloning, `npm install`, and `npm run build` as the primary user installation route. Put those under “Contributing from source.”
 
-- [ ] **Step 2: Document the actual protocol surface**
+- [x] **Step 2: Document the actual protocol surface**
 
 List:
 
@@ -1421,7 +1424,7 @@ List:
 - configuration precedence
 - Node requirement
 
-- [ ] **Step 3: Correct architecture terminology**
+- [x] **Step 3: Correct architecture terminology**
 
 Use:
 
@@ -1433,7 +1436,7 @@ Legacy DriftCore action-STDIO
 
 Never call the REST route collection “MCP HTTP.”
 
-- [ ] **Step 4: Add command verification tests**
+- [x] **Step 4: Add command verification tests**
 
 Create a lightweight test that extracts documented npm scripts and verifies those script keys exist in `package.json`. At minimum cover:
 
@@ -1449,7 +1452,7 @@ pack:check
 integration:mcp
 ```
 
-- [ ] **Step 5: Run documentation verification**
+- [x] **Step 5: Run documentation verification**
 
 ```bash
 npm --prefix packages/server run lint
@@ -1458,7 +1461,7 @@ npm --prefix packages/server run pack:check
 npm --prefix packages/server run integration:mcp
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md \
@@ -1716,7 +1719,7 @@ Task 7: Implemented createDriftCoreMcpServer with the package.json version and a
 Task 8: Added strict CLI parsing, project-root precedence, upward Drupal project discovery, conventional root derivation, and concise startup failure. Explicit legacy drupalRoot is preserved; --project-root overrides the root while retaining settings from an explicit --config. Environment/CWD config is bypassed when --project-root is given. Discovery is opt-in for MCP startup, preserving legacy config-only behavior. Review Gate 8: lint and build passed; 121 tests passed (0 failures); legacy HTTP integration passed.
 Task 9: Packaged @driftcore/server 0.2.0 with the driftcore executable, Node >=20 metadata, a build-on-prepack hook, usable package README, and the MIT license declared by the root README. Standard start/start:mcp and explicit start:stdio:legacy scripts are present; start:http remains compatible. npm executable symlinks now pass the import-safe entrypoint guard. The smoke test lives under src/integration to match tsconfig rootDir; it installs the tarball into a clean temporary consumer with production dependencies only and no install scripts, then checks exact resources/tools, selected-project manifest and composer metadata, CLI-root and nested upward-discovery launches, protocol-only stdout, operational stderr, and unsignaled exit 0 after EOF. SDK process observation is confined to the integration harness. The final tarball contains 44 files and excludes source, compiled tests, integration harnesses, and node_modules. Review Gate 9: clean npm ci, lint, explicit build, 122 tests (0 failures), legacy HTTP integration, pack:check, and integration:mcp all passed on Linux with Node 24.19.0/npm 11.9.0. No tarballs or temporary consumers remain. Tasks 10-12, including MCP Inspector validation and real-project acceptance, remain pending; the PR remains draft and is not ready to merge.
 Task 10: Renamed the custom STDIO entry point and dispatcher to legacyStdio.ts; updated imports and compatibility test labels. start:stdio:legacy now launches the renamed executable; start:http was renamed to start:http:legacy. HTTP help and operational logs explicitly describe legacy REST, and custom STDIO logs identify the legacy action protocol. Existing createMCPServer, routes, actions, envelopes, and guarded workflow behavior remain unchanged. Added docs/decisions/standard-mcp-stdio.md with primary SDK/STDIO choice, deferred backends/publication, and legacy removal criteria. Builds clear dist before compilation, and packed proof requires renamed files while rejecting obsolete compiled paths. Package README commands match the renamed scripts. Review Gate 10: clean npm ci, lint, explicit build, all 123 tests (0 failures), legacy HTTP integration, and packed MCP consumer proof passed. An additional subprocess check exposed a pre-existing feedback loop in the legacy executable: readline.write fed responses into the input parser. Independently reproduced on the pre-Task-10 executable, then fixed with a separate stdout writer and an injected writer for mock tests. The new real-subprocess regression proves consumer Composer metadata and exit 0 after EOF. CHANGELOG.md records the command renames and output fix. Additional checks proved the renamed HTTP npm command reports legacy REST help and exits 0. Seeding both obsolete compiled filenames and rebuilding proved they are removed. Tasks 11-12 remain pending; PR stays draft.
-Task 11:
+Task 11: Replaced root and package README installation guidance with the future published npx model and the currently proven tarball route. Documented all four resource URIs, sixteen MCP tools, strict scaffold/apply inputs, preview/apply/verify, CLI precedence, Node >=20, and explicit Legacy REST/action-STDIO compatibility. Updated architecture, commands, deployment, testing, security, codebase map, hotspot paths, and AGENTS.md to match the current runtime. Added a documentation test that verifies referenced npm scripts and the nine required command names. Review Gate 11: lint, build, all 124 tests (0 failures), legacy REST integration, pack:check, and the packed MCP consumer smoke passed. The smoke verified installed executable, four resources, sixteen tools, project manifest, read-only call, CLI root and upward discovery, protocol-only stdout, and clean exit. npm used a writable temporary cache for package checks because the environment's default /root/.npm cache is read-only. Task 12's MCP Inspector and real-project acceptance remain pending; PR remains draft.
 Final commit:
 Final test count:
 Packed tarball:

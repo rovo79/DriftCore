@@ -1,37 +1,22 @@
-# TESTING
+# Testing
 
-- **Primary test entrypoints**
-  - `npm test` (from `packages/server`): build then run Node tests from compiled `dist/__tests__`.
-  - `npm run integration`: build then run HTTP transport smoke test (`dist/integration/smoke.js`).
-  - `npm run lint`: TypeScript type-check in no-emit mode.
+From the repository root:
 
-## Test suites in `packages/server/src`
+```sh
+npm --prefix packages/server run lint
+npm --prefix packages/server run build
+npm --prefix packages/server test
+npm --prefix packages/server run integration
+npm --prefix packages/server run pack:check
+npm --prefix packages/server run integration:mcp
+```
 
-- `__tests__/projectManifest.test.ts`
-  - Valid manifest generation, not-configured behavior, degraded behavior on missing composer metadata.
-- `__tests__/cliTools.test.ts`
-  - Drush status parsing, Drush pml normalization, composer info parsing, composer outdated parsing.
-- `__tests__/cliTools.nonwrite.test.ts`
-  - Verifies tool invocations do not modify a sentinel project file.
-- `__tests__/schemaResources.test.ts`
-  - Verifies required static schema resources and drush tool registration.
-- `__tests__/contracts.test.ts`
-  - Verifies contract-level response shapes for transport routes and resource/tool envelopes.
-- `integration/smoke.ts`
-  - Starts ephemeral HTTP server and calls core endpoints (`/health`, `/resources`, `/project-manifest`, `/drush/status`, `/composer/info`).
+`lint` type-checks without output. `build` clears `dist` before emitting TypeScript. `test` builds and runs compiled `node:test` suites. `integration` builds and checks the Legacy REST API routes. `pack:check` inspects the npm artifact without publishing it.
 
-## Testing characteristics
+`integration:mcp` packs the executable, installs the tarball with production dependencies into a fresh temporary consumer, and uses an official SDK client to initialize it. It checks all four resources and sixteen tools, reads the manifest, calls read-only Composer inspection, tests explicit and discovered project roots, confirms protocol-only stdout and clean EOF exit, then deletes its temporary artifacts. It does not need a running Drupal database.
 
-- Uses temporary directories to simulate Drupal project filesystem shape.
-- Avoids requiring real Drush/Composer execution in unit tests by using runner stubs.
-- Integration smoke test validates transport plumbing but does not assert real Drupal connectivity.
+The unit tests include CLI/config precedence, exact MCP registration, resource and tool result mappings, guarded preview/apply/verify behavior, security boundaries, legacy action-STDIO compatibility, and a real-process regression for the legacy output path. The existing GitHub Actions workflow runs lint, build, and unit tests on Node 20. HTTP and packed consumer integrations are not CI gates in that workflow.
 
-## Gaps / what to add next
+## Final acceptance still pending
 
-- No property/fuzz tests for parsing untrusted CLI output.
-- No CI config in repo to enforce test execution on PRs.
-
-## Assumptions
-
-- Test commands are package-local; there is no root-level test orchestrator currently checked in.
-- “Integration” here means HTTP transport smoke coverage, not full Drupal sandbox integration.
+Task 12 calls for a manual MCP Inspector session using the packed artifact and a non-production Drupal fixture. It also requires real-project acceptance and final review of package contents and stdout discipline. Passing the automated packed consumer smoke test does not record that manual Inspector result.
