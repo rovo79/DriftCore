@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { deriveDrupalRoot, discoverProjectRoot } from "./projectRoot.js";
 import type {
   BinaryValidationEntry,
   BinaryValidationResult,
@@ -11,6 +12,8 @@ import type {
 
 export interface LoadConfigOptions {
   configPath?: string;
+  projectRoot?: string;
+  discoverProject?: boolean;
   logger?: Pick<Console, "info" | "warn" | "error">;
 }
 
@@ -180,7 +183,32 @@ function resolveConfigPath(explicitPath?: string): string | null {
 
 export function loadServerConfig(options: LoadConfigOptions = {}): LoadedConfig {
   const logger = options.logger ?? console;
-  const configPath = resolveConfigPath(options.configPath);
+  // Consumer discovery is opt-in; legacy transports keep their config-only behavior.
+  const configPath = options.projectRoot
+    ? (options.configPath ?? null)
+    : resolveConfigPath(options.configPath);
+  const canDiscover = options.discoverProject && !options.configPath &&
+    !process.env.DRIFTCORE_CONFIG && !fs.existsSync(configPath ?? "");
+  const projectRoot = options.projectRoot ??
+    (canDiscover ? discoverProjectRoot(process.cwd()) : undefined);
+
+  if (options.discoverProject && !projectRoot && canDiscover) {
+    return { config: null, configPath: null, error: {
+      code: "E_CONFIG_INVALID_ROOT",
+      message: "No Drupal project found; use --project-root or --config",
+    } };
+  }
+
+  if (projectRoot && (!configPath || canDiscover)) {
+    const drupalRoot = deriveDrupalRoot(projectRoot);
+    if (!drupalRoot) {
+      return { config: null, configPath: null, error: {
+        code: "E_CONFIG_INVALID_ROOT",
+        message: "Project must contain web/core, docroot/core, or core",
+      } };
+    }
+    return { config: applyDefaults({ drupalRoot }), configPath: null };
+  }
 
   if (!configPath) {
     return { config: null, configPath: null };
@@ -217,7 +245,15 @@ export function loadServerConfig(options: LoadConfigOptions = {}): LoadedConfig 
     };
   }
 
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { config: null, configPath, error: {
+      code: "E_CONFIG_INVALID_ROOT", message: "Configuration must be a JSON object",
+    } };
+  }
   const rawConfig = parsed as Partial<ServerConfig> & { drupalRoot?: unknown };
+  if (options.projectRoot) {
+    rawConfig.drupalRoot = deriveDrupalRoot(options.projectRoot);
+  }
 
   if (typeof rawConfig.drupalRoot !== "string" || rawConfig.drupalRoot.length === 0) {
     const message = "Configuration must specify an absolute drupalRoot path";

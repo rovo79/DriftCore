@@ -1,57 +1,42 @@
-# COMMANDS
+# Commands
 
-- **Working directory assumption for commands below**: `packages/server`.
+## MCP client installation
 
-## Build, lint, test
+The published package example in the [root README](../../README.md) uses `npx`. Publication has not occurred. For a local tarball, run the following from the repository root, then install the generated `packages/server/driftcore-server-0.2.0.tgz` in a consumer project:
 
-- `npm install`
-- `npm run build`
-- `npm run lint`
-- `npm test`
-- `npm run integration`
-
-## Run server
-
-- **STDIO transport**
-  - `DRIFTCORE_CONFIG=/path/to/driftcore.config.json npm run start:stdio`
-- **HTTP transport**
-  - `DRIFTCORE_CONFIG=/path/to/driftcore.config.json npm run start:http -- --port 8080`
-
-## HTTP endpoints (GET)
-
-- `/health`
-- `/resources`
-- `/tools`
-- `/project-manifest`
-- `/drush/status`
-- `/drush/pml`
-- `/composer/info`
-- `/composer/outdated`
-
-## STDIO actions (JSON line input)
-
-- `resources`
-- `tools`
-- `project_manifest`
-- `drush_status`
-- `drush_pml`
-- `composer_info`
-- `composer_outdated`
-
-Example payload:
-
-```json
-{"id":1,"action":"project_manifest"}
+```sh
+npm --prefix packages/server ci
+npm --prefix packages/server pack
 ```
 
-## Docker
+The consumer's MCP client launches `/absolute/path/to/consumer/node_modules/.bin/driftcore` with `--project-root /absolute/path/to/drupal-project`. Alternatively pass `--config /absolute/path/to/driftcore.config.json`. Standard MCP runs over STDIO and does not need a daemon.
 
-- Build image from package directory:
-  - `docker build -t driftcore-server .`
-- Run container (config mount/env needed for useful behavior):
-  - `docker run --rm -p 8080:8080 -e DRIFTCORE_CONFIG=/config/driftcore.config.json -v /host/config:/config driftcore-server`
+## Contributing from source
 
-## Assumptions
+The commands below run from the repository root. `npm --prefix packages/server` targets the only runtime package; there is no root `package.json` script wrapper.
 
-- There is no root `package.json` command wrapper in the current repository.
-- Docker run command is illustrative; actual Drupal/composer/drush paths must exist inside container/mounts.
+```sh
+npm --prefix packages/server run build
+npm --prefix packages/server run lint
+npm --prefix packages/server test
+npm --prefix packages/server run integration
+npm --prefix packages/server run pack:check
+npm --prefix packages/server run integration:mcp
+```
+
+`build` cleans `dist` and compiles. `integration` runs the Legacy REST API smoke test. `integration:mcp` packs a tarball, installs it in an isolated consumer, exercises resources/tools through an SDK client, and removes the temporary files.
+
+## Source launch and legacy compatibility
+
+```sh
+npm --prefix packages/server run start -- --project-root /absolute/path/to/drupal-project
+npm --prefix packages/server run start:mcp -- --project-root /absolute/path/to/drupal-project
+DRIFTCORE_CONFIG=/absolute/path/to/driftcore.config.json npm --prefix packages/server run start:stdio:legacy
+DRIFTCORE_CONFIG=/absolute/path/to/driftcore.config.json npm --prefix packages/server run start:http:legacy -- --port 8080
+```
+
+`start` and `start:mcp` run Standard MCP STDIO. The legacy STDIO command accepts `{"id":1,"action":"project_manifest"}` JSON lines. The legacy HTTP command starts the REST routes on `127.0.0.1` by default. The names `start:stdio` and `start:http` are retired.
+
+## Docker image
+
+The package Dockerfile currently starts the Legacy REST API using `node dist/bin/http.js`. This is an existing compatibility deployment, not a standard MCP HTTP service. The project and config paths must be accessible inside the container.

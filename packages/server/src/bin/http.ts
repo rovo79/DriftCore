@@ -9,13 +9,13 @@ async function main() {
       alias: "p",
       type: "number",
       default: 8080,
-      describe: "Port for the MCP HTTP server",
+      describe: "Port for the legacy REST server",
     })
     .option("host", {
       alias: "H",
       type: "string",
       default: "127.0.0.1",
-      describe: "Host interface for the MCP HTTP server",
+      describe: "Host interface for the legacy REST server",
     })
     .help()
     .parseAsync()) as { port?: number; host?: string };
@@ -29,6 +29,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("HTTP server failed", error);
+  console.error("Legacy REST server failed", error);
   process.exit(1);
 });

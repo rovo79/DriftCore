@@ -1,45 +1,25 @@
-# SECURITY_AND_RISKS
+# Security and risks
 
-## Existing safety mechanisms
+## Local trust boundary
 
-- **Command allowlisting by construction**
-  - Drush and Composer tools execute fixed command/arg sets; transport does not accept arbitrary flags.
-- **No shell execution path**
-  - CLI runner uses `spawn(..., shell: false)`.
-- **Timeout + process termination**
-  - Configurable timeouts for Drush/Composer calls, with SIGKILL on timeout.
-- **Concurrency control**
-  - `maxParallelCli` defaults to `1` to reduce contention and limit parallel subprocess risk.
-- **Structured error handling**
-  - Failures map to explicit status/error payloads to avoid crashes and opaque failures.
-- **Non-write posture tested**
-  - Dedicated test verifies no tool invocation modifies a sentinel project file.
+Standard MCP STDIO runs as the same local user as its MCP client. Its four project resources expose project metadata; the tools can inspect a Drupal codebase and the three guarded workflows can change it after preview. Grant access to trusted local clients and projects. Standard MCP does not open a network listener.
 
-## Current risks / gaps
+The Legacy REST API binds to `127.0.0.1` by default and has no authentication. It is not Streamable HTTP MCP. Do not expose it as a multi-user or remote service on the assumption that it has MCP security semantics. The Legacy DriftCore action-STDIO adapter uses a custom JSON-line protocol, not standard MCP.
 
-- **No auth on HTTP endpoints**
-  - API appears open by default (`/health`, `/tools`, tool endpoints).
-- **Potential sensitive path leakage**
-  - Errors/diagnostics include command, cwd, and filesystem paths.
-- **Resource exposure**
-  - `/composer/info` and `project_manifest` can expose dependency metadata and local project structure.
-- **Process isolation is basic**
-  - Subprocesses run on host/container with cwd/env controls but without deeper sandboxing.
-- **Placeholder sandbox execution API**
-  - `executeInSandbox` is currently a stub; future implementation is a high-risk area.
-- **No built-in rate limiting or request size controls**
-  - Could enable abuse in exposed environments.
+## Implemented controls
 
-## Recommended hardening backlog
+- Fixed Drush/Composer command arguments and `spawn(..., { shell: false })`; arbitrary command execution is not exposed by a tool.
+- Configurable command timeouts, process termination on timeout, and a `maxParallelCli` concurrency limit (default `1`).
+- Short-lived, single-use preview tokens, constrained filesystem paths, and verification for apply workflows.
+- Legacy REST cross-origin request rejection, request body size bounds, and per-client-IP rate limiting when a valid configuration enables the limiter. HTTP has no authentication.
+- Optional output redaction (`redaction.enabled`, default false) and truncated CLI stderr in mapped errors. Do not assume that every local path is hidden when redaction is disabled.
+- MCP protocol-only stdout and stderr operational diagnostics; invalid project selection fails startup.
 
-- Add authn/authz (token or mTLS) before exposing HTTP transport beyond localhost.
-- Add optional response redaction mode for paths/stderr diagnostics.
-- Add endpoint-level rate limiting and time-budget controls.
-- Add explicit allowlist checks for resolved binary paths.
-- Add contract tests for redaction, timeout behavior, and malformed CLI output resilience.
-- Document threat model for local-dev vs shared-host deployment.
+## Remaining risks
 
-## Assumptions
+- Reads can reveal Composer dependencies, extension names, configuration layout, and paths to the local client. Write tools can alter the selected project after a valid preview token.
+- A local client runs with its user's filesystem and executable privileges. `executeInSandbox` remains a stub, not a general sandbox.
+- Binding legacy REST beyond loopback would expose unauthenticated endpoints. IP rate limits and origin rejection are not substitutes for authentication or authorization.
+- Response redaction is opt-in; diagnostic messages may contain local paths when it is off.
 
-- Security posture is assessed from application code only; external proxy/firewall controls are unknown.
-- No secret scanning or SAST configuration is visible in repository contents.
+Authenticated remote access, a general sandbox, and Streamable HTTP are outside the current migration. See [the transport decision](../decisions/standard-mcp-stdio.md).

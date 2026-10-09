@@ -1,7 +1,7 @@
 # HOTSPOTS
 
 - **Method used**
-  - Hotspots estimated from git history file-touch counts (current tracked files only).
+  - This is a historical file-touch snapshot; the custom STDIO file was renamed to legacyStdio.ts during Task 10. Current code paths take precedence over counts from old names.
   - Command used: `git log --name-only --pretty=format: | rg '.' | while read f; do [ -e "$f" ] && echo "$f"; done | sort | uniq -c | sort -nr | head -n 30`
 
 ## Most changed areas (current files)
@@ -12,7 +12,7 @@
 - **Server API surface hotspots**
   - `packages/server/src/index.ts`
   - `packages/server/src/transports/http.ts`
-  - `packages/server/src/transports/stdio.ts`
+  - `packages/server/src/transports/legacyStdio.ts`
   - `packages/server/src/types.ts`
 - **Tool behavior hotspots**
   - `packages/server/src/features/drushTools.ts`

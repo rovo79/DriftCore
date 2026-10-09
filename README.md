@@ -1,451 +1,115 @@
 # DriftCore
 
-> Drupal project operations for AI coding and maintenance agents.
+DriftCore gives an MCP client authoritative context about one local Drupal project and guarded tools for Drupal maintenance. The primary interface is **standard MCP STDIO** through the `driftcore` executable. The client launches it on demand; no daemon is needed.
 
-DriftCore is an experimental Model Context Protocol server that gives AI agents structured, authoritative context about a Drupal project and guarded access to Drupal engineering workflows.
+## Install and connect
 
-It runs alongside a local or containerized Drupal codebase. Instead of asking an agent to infer project state from arbitrary filesystem searches and shell output, DriftCore exposes Drupal-aware resources and named operations backed by project discovery, Drush, and Composer.
+DriftCore requires Node.js 20 or newer and a local Drupal codebase. A standard Composer project can use `web/core`, `docroot/core`, or `core` at its project root. Drush and Composer are needed for tools that run those binaries, but filesystem-based inspection can work without a live database.
 
-The active implementation is in [`packages/server`](packages/server).
-
-## What DriftCore does
-
-DriftCore currently provides three layers of capability.
-
-### Project context
-
-Agents can inspect:
-
-* the Drupal root and core version
-* Composer project metadata and dependencies
-* installed, enabled, and custom modules and themes
-* configuration sync layout and environment indicators
-* project readiness checks and available capabilities
-
-### Read-only assessments
-
-Agents can request structured assessments for:
-
-* available Drupal and Composer upgrades
-* active configuration drift
-* planned custom module scaffolding
-
-### Guarded write workflows
-
-DriftCore implements bounded write workflows for:
-
-* rebuilding Drupal caches
-* creating a minimal custom module scaffold
-* exporting Drupal configuration
-
-Each write workflow follows the same lifecycle:
-
-```text
-preview → apply → verify
-```
-
-A preview returns the intended operation and a short-lived token. Apply requires that token and consumes it so it cannot be reused. Verification then inspects the resulting project state.
-
-## Why DriftCore
-
-General-purpose coding agents can read files and execute commands, but they do not automatically understand the operational structure of a Drupal project.
-
-Without a Drupal-aware interface, an agent may need to guess:
-
-* where the real Drupal root is
-* whether Drush and Composer are available
-* which extensions are custom
-* how configuration is organized
-* which operations are safe to perform
-* how to verify that a change succeeded
-
-DriftCore turns those concerns into explicit resources and tools. The goal is not unrestricted automation. The goal is controlled, inspectable, and verifiable Drupal project operations.
-
-## Safety model
-
-DriftCore is designed around bounded capabilities rather than general shell access.
-
-Current safeguards include:
-
-* fixed Drupal and Composer command paths
-* subprocess execution without a shell
-* per-command timeouts
-* configurable concurrency limits
-* short-lived, single-use preview tokens for write operations
-* filesystem boundary checks for generated files
-* post-apply verification
-* localhost HTTP binding by default
-* cross-origin request rejection
-* request body limits
-* configurable output redaction
-* per-client HTTP rate limiting
-
-DriftCore remains experimental. It does not currently provide a complete authentication and authorization system for remote or multi-user deployment.
-
-## Requirements
-
-* Node.js 20 or newer
-* npm 9 or newer
-* a local Drupal project
-* Drush for Drupal inspection and Drush-backed workflows
-* Composer for dependency inspection and upgrade assessment
-
-Project-local executables such as `vendor/bin/drush` are supported.
-
-## Quick start
-
-From the repository root:
-
-```bash
-npm --prefix packages/server install
-npm --prefix packages/server run build
-```
-
-Create a configuration file:
+When `@driftcore/server` is published to npm, an MCP client can use this configuration:
 
 ```json
 {
-  "drupalRoot": "/absolute/path/to/drupal/web"
-}
-```
-
-Save it as `driftcore.config.json` in the current working directory, or point `DRIFTCORE_CONFIG` to it:
-
-```bash
-export DRIFTCORE_CONFIG=/absolute/path/to/driftcore.config.json
-```
-
-Start the STDIO transport:
-
-```bash
-npm --prefix packages/server run start:stdio
-```
-
-Or start the HTTP transport:
-
-```bash
-npm --prefix packages/server run start:http -- --port 8080
-```
-
-The HTTP server binds to `127.0.0.1` by default.
-
-## Configuration
-
-A minimal configuration only requires `drupalRoot`.
-
-```json
-{
-  "drupalRoot": "/absolute/path/to/drupal/web",
-  "drushPath": "/absolute/path/to/vendor/bin/drush",
-  "composerPath": "/absolute/path/to/composer",
-  "customModuleDirs": [
-    "web/modules/custom"
-  ],
-  "customThemeDirs": [
-    "web/themes/custom"
-  ],
-  "maxParallelCli": 1,
-  "timeouts": {
-    "drushStatusMs": 10000,
-    "drushPmlMs": 15000,
-    "composerInfoMs": 8000,
-    "composerOutdatedMs": 30000
-  },
-  "cacheTtlMs": {
-    "projectManifest": 5000,
-    "pml": 5000
-  },
-  "redaction": {
-    "enabled": false,
-    "placeholder": "[redacted]"
-  },
-  "rateLimit": {
-    "windowMs": 60000,
-    "maxRequests": 60
+  "mcpServers": {
+    "driftcore": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@driftcore/server",
+        "--project-root",
+        "/absolute/path/to/drupal-project"
+      ]
+    }
   }
 }
 ```
 
-When executable paths are omitted, DriftCore first looks for project-local binaries and then falls back to commands available on `PATH`.
+**Current local installation:** The package has not been published. From a DriftCore checkout, `npm --prefix packages/server ci` followed by `npm --prefix packages/server pack` creates `packages/server/driftcore-server-0.2.0.tgz`. Install that tarball in a separate consumer project and point the MCP client at the installed executable:
 
-## Resources
-
-### `project_manifest`
-
-Returns a consolidated project summary including the Drupal root, Drupal core version, Composer state, custom modules, and custom themes.
-
-### `project_modules`
-
-Returns discovered module and theme state. DriftCore uses Drush when available and falls back to filesystem discovery for custom extensions.
-
-### `project_config_layout`
-
-Reports the detected configuration sync directory, Config Split indicators, environment-related configuration hints, and the detection method used.
-
-### `project_checks`
-
-Reports project readiness and capability flags, including Drupal root validity, binary availability, Composer metadata, and configuration sync detection.
-
-### Template resources
-
-The resource catalog also contains static contract/testing templates:
-
-* `schema.entityTypes`
-* `config.exported`
-* the template descriptor for `project_manifest`
-
-These templates are not dynamically discovered from the connected Drupal project and should not be treated as authoritative project data.
-
-## Tools and workflows
-
-### Inspection tools
-
-* `drift.drush_status`
-* `drift.drush_pml`
-* `drift.composer_info`
-* `drift.composer_outdated`
-
-### Read-only workflow tools
-
-* `drift.upgrade_assessment`
-* `drift.config_drift_assessment`
-* `drift.scaffold_plan`
-
-### Guarded write workflow tools
-
-* `drift.cache_rebuild`
-* `drift.module_scaffold`
-* `drift.config_export`
-
-The write tools expose separate preview, apply, and verify operations through the transports.
-
-## HTTP interface
-
-### Discovery and inspection routes
-
-```text
-GET /health
-GET /resources
-GET /tools
-GET /project-manifest
-GET /project-modules
-GET /project-config-layout
-GET /project-checks
-GET /drush/status
-GET /drush/pml
-GET /composer/info
-GET /composer/outdated
+```sh
+npm install /absolute/path/to/DriftCore/packages/server/driftcore-server-0.2.0.tgz
 ```
-
-### Read-only workflow routes
-
-```text
-GET /workflows/upgrade-assessment
-GET /workflows/config-drift
-GET /workflows/scaffold-plan?machine_name=acme_blog&target_type=module
-```
-
-### Cache rebuild workflow
-
-```text
-GET  /workflows/cache-rebuild/preview
-POST /workflows/cache-rebuild/apply
-GET  /workflows/cache-rebuild/verify
-```
-
-Apply body:
 
 ```json
 {
-  "preview_token": "token returned by preview"
-}
-```
-
-### Module scaffold workflow
-
-```text
-GET  /workflows/scaffold/preview?machine_name=acme_blog&target_type=module
-POST /workflows/scaffold/apply
-GET  /workflows/scaffold/verify?machine_name=acme_blog&target_type=module
-```
-
-Apply body:
-
-```json
-{
-  "machine_name": "acme_blog",
-  "target_type": "module",
-  "preview_token": "token returned by preview"
-}
-```
-
-### Configuration export workflow
-
-```text
-GET  /workflows/config-export/preview
-POST /workflows/config-export/apply
-GET  /workflows/config-export/verify
-```
-
-Apply body:
-
-```json
-{
-  "preview_token": "token returned by preview"
-}
-```
-
-## STDIO interface
-
-The STDIO transport accepts one JSON request per line.
-
-Example:
-
-```json
-{"id":1,"action":"project_manifest"}
-```
-
-Available actions:
-
-```text
-resources
-tools
-project_manifest
-project_modules
-project_config_layout
-project_checks
-drush_status
-drush_pml
-composer_info
-composer_outdated
-upgrade_assessment
-config_drift_assessment
-scaffold_plan
-cache_rebuild_preview
-cache_rebuild_apply
-cache_rebuild_verify
-scaffold_preview
-scaffold_apply
-scaffold_verify
-config_export_preview
-config_export_apply
-config_export_verify
-```
-
-Parameters are supplied through the `params` object:
-
-```json
-{
-  "id": 2,
-  "action": "scaffold_preview",
-  "params": {
-    "machine_name": "acme_blog",
-    "target_type": "module"
+  "mcpServers": {
+    "driftcore": {
+      "command": "/absolute/path/to/consumer/node_modules/.bin/driftcore",
+      "args": ["--project-root", "/absolute/path/to/drupal-project"]
+    }
   }
 }
 ```
 
-## Response model
+The `--project-root` argument is the Composer project root, not its nested `web` or `docroot` directory. The tarball route is proven by the packed consumer integration test. The published `npx` example describes the intended install once publication occurs.
 
-Resources and tools use a shared response envelope.
+## Project selection
 
-```json
-{
-  "status": "ok",
-  "data": {}
-}
-```
+The CLI accepts `--project-root <path>` and `--config <path>`. Selection order is:
 
-Supported status values are:
+1. Explicit `--project-root`. With `--config`, it overrides that file's `drupalRoot` while retaining other settings. By itself, it ignores config files and `DRIFTCORE_CONFIG`.
+2. Explicit `--config` file.
+3. File named by `DRIFTCORE_CONFIG`.
+4. `driftcore.config.json` in the current working directory.
+5. Upward project discovery from the current working directory using Drupal Composer metadata or conventional core directories.
 
-* `ok`
-* `degraded`
-* `error`
-* `timeout`
-* `not_configured`
+DriftCore derives the Drupal root from `<projectRoot>/web/core`, then `docroot/core`, then `core`. Explicit legacy config files instead provide `drupalRoot` directly. An invalid selected path fails startup with a stderr diagnostic. Standard MCP stdout contains protocol traffic only.
 
-A response may also include a structured `error` with a machine-readable code, message, and diagnostics.
+## MCP resources
 
-Write operations additionally report their observed changes, and verification operations report whether the resulting state was confirmed.
+| URI | Project data |
+| --- | --- |
+| `driftcore://project/manifest` | Root, core version, Composer metadata, custom extensions and capabilities |
+| `driftcore://project/modules` | Module and theme discovery |
+| `driftcore://project/config-layout` | Configuration sync and environment layout |
+| `driftcore://project/checks` | Project readiness, binary availability and warnings |
 
-## Scope and boundaries
+These four resources are connected-project facts. The static `schema.entityTypes` and `config.exported` templates belong only to the legacy catalog; they are not exposed as standard MCP resources.
 
-DriftCore operates on Drupal's **project and engineering plane**.
+## MCP tools
 
-It is intended for coding, maintenance, upgrade, diagnostic, and controlled operations agents working on the Drupal system itself.
+| Inspection and assessment | Guarded workflows |
+| --- | --- |
+| `drift_drush_status` | `drift_cache_rebuild_preview` |
+| `drift_drush_pml` | `drift_cache_rebuild_apply` |
+| `drift_composer_info` | `drift_cache_rebuild_verify` |
+| `drift_composer_outdated` | `drift_module_scaffold_preview` |
+| `drift_upgrade_assessment` | `drift_module_scaffold_apply` |
+| `drift_config_drift_assessment` | `drift_module_scaffold_verify` |
+| `drift_scaffold_plan` | `drift_config_export_preview` |
+| | `drift_config_export_apply` |
+| | `drift_config_export_verify` |
 
-It is not a content-management endpoint for agents working with production content. It does not currently expose Drupal content entities, media, taxonomy, users, or editorial workflows through Drupal's runtime permission system.
+Inspection, assessment, cache rebuild preview/verify, and config export preview/verify accept an empty object. `drift_scaffold_plan`, `drift_module_scaffold_preview`, and `drift_module_scaffold_verify` require `machine_name` (1–64 characters, lowercase letter first, then lowercase letters, numbers, or underscores) and `target_type: "module"`. The cache rebuild and config export apply tools require a nonempty `preview_token`; module scaffold apply requires that token plus the scaffold fields. Inputs are strict: extra properties are rejected.
 
-Those are complementary layers:
+A write operation uses **preview → apply → verify**. Preview returns the intended operation and a short-lived token. Apply requires and consumes that token. Verify checks the resulting state. The tools invoke fixed Drush/Composer operations, with no arbitrary shell command input. Tool results contain a JSON text envelope and structured content with `status`, optional `data` or `error`; `error` and `timeout` statuses set the MCP error flag.
 
-```text
-Content and business agents
-          ↓
-Drupal content MCP
-          ↓
-Entities, media, taxonomy, and editorial workflows
+## Legacy compatibility
 
+The **Legacy REST API** uses route-per-operation HTTP, not Streamable HTTP MCP. The **Legacy DriftCore action-STDIO** protocol accepts one custom JSON action per line, such as `{"id":1,"action":"project_manifest"}`. Both remain available through `start:http:legacy` and `start:stdio:legacy`, and both use legacy config-file selection. They are covered by compatibility tests. See [the transport decision](docs/decisions/standard-mcp-stdio.md) for removal criteria.
 
-Coding and maintenance agents
-          ↓
-DriftCore
-          ↓
-Project context, Drush, Composer, and guarded operations
-```
+The REST listener defaults to `127.0.0.1`; it has no authentication and should remain a trusted local interface. The standard MCP executable is the recommended integration path.
 
-A Drupal installation could use both: one interface for agents working with information managed by Drupal, and DriftCore for agents working safely on the Drupal project.
+## Contributing from source
 
-DriftCore is also not currently:
+The runtime package is in [`packages/server`](packages/server). From the repository root:
 
-* a multi-agent orchestration platform
-* a general-purpose sandbox for untrusted code
-* a generated SDK platform
-* a replacement for Drupal authentication or entity access control
-
-The separate runner, general sandbox, and generated SDK concepts have been explicitly deferred. Known workflow sequencing and safety boundaries remain inside `packages/server`.
-
-## Project documentation
-
-* [Architecture](docs/ai/ARCHITECTURE.md)
-* [Codebase map](docs/ai/CODEBASE_MAP.md)
-* [Commands](docs/ai/COMMANDS.md)
-* [Deployment](docs/ai/DEPLOYMENT.md)
-* [Security and risks](docs/ai/SECURITY_AND_RISKS.md)
-* [Testing](docs/ai/TESTING.md)
-* [Runner, sandbox, and SDK decision](docs/decisions/runner-sandbox-sdk.md)
-
-## Testing
-
-Run the server test suite:
-
-```bash
-npm --prefix packages/server test
-```
-
-Run the TypeScript validation without emitting files:
-
-```bash
+```sh
+npm --prefix packages/server ci
 npm --prefix packages/server run lint
-```
-
-Run the HTTP integration smoke test:
-
-```bash
+npm --prefix packages/server run build
+npm --prefix packages/server test
 npm --prefix packages/server run integration
+npm --prefix packages/server run pack:check
+npm --prefix packages/server run integration:mcp
 ```
 
-## Roadmap
+`integration` checks legacy REST. `integration:mcp` installs a fresh tarball into a temporary consumer and checks a real SDK client's MCP session. Detailed commands and architecture are under [`docs/ai`](docs/ai), and the package's [README](packages/server/README.md) travels with the tarball. Final MCP Inspector and real-project acceptance remain to be completed.
 
-Near-term work includes:
+## Scope
 
-* stabilizing and versioning the public transport and response contracts
-* expanding contract and workflow coverage
-* replacing static template resources with project-discovered data where appropriate
-* strengthening security for any deployment beyond a trusted local environment
-* broadening the set of bounded Drupal maintenance workflows
-* improving packaging and client integration documentation
+DriftCore operates on Drupal project configuration and engineering workflows. It does not expose Drupal content entities or implement Drupal runtime permissions. A separate runner, general sandbox, generated SDK, Streamable HTTP, and DDEV/Lando execution backends are deferred.
 
 ## License
 
-MIT
-::: 
+MIT. The package includes a license file.

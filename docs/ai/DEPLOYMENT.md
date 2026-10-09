@@ -1,40 +1,19 @@
-# DEPLOYMENT
+# Deployment
 
-- **Current deployment maturity**
-  - Repository contains a package-level Dockerfile for `@driftcore/server`.
-  - No checked-in CI/CD workflow or orchestrator manifests are present.
+## Primary local MCP path
 
-## What exists now
+An MCP client starts the installed `driftcore` executable on demand with `--project-root /absolute/path/to/drupal-project`. Node.js 20 or newer is required. The client owns the process lifetime; stdin/stdout carry standard MCP messages, and diagnostics go to stderr. There is no separate daemon or listening port.
 
-- `packages/server/Dockerfile`
-  - Base: `node:20-slim`
-  - Copies `package.json`, `tsconfig.json`, `src/`
-  - Runs `npm install && npm run build`
-  - Starts HTTP server: `node dist/bin/http.js`
-- Runtime requires external config via `DRIFTCORE_CONFIG` (or default file path in working dir).
+The package is not published yet. The tested route is a local `npm pack` tarball installed into a clean consumer, as described in the [root README](../../README.md). Publication to npm and the MCP Registry is deferred. The tarball includes compiled runtime code, package metadata, README, and license; compiled tests and integration harnesses are excluded.
 
-## Minimal deployment pattern
+Drush and Composer are required for operations that invoke them. Ensure the selected Drupal codebase and project-local executables are reachable by the client process. A missing binary can degrade or fail an operation, while filesystem-based project inspection may still work.
 
-- Build the server image from `packages/server`.
-- Provide `driftcore.config.json` at runtime (bind mount or baked image layer).
-- Ensure target Drupal codebase and CLI binaries are reachable from runtime:
-  - `drupalRoot` path must be valid inside container.
-  - Drush and Composer paths must be valid (or discoverable defaults must exist).
-- Expose HTTP port (default 8080) when using HTTP transport.
+## Existing container path: Legacy REST API
 
-## Operational considerations
+`packages/server/Dockerfile` uses `node:20-slim`, copies package metadata, TypeScript config and source, installs dependencies, builds, then starts `node dist/bin/http.js`. The container must mount a reachable Drupal project and a config file whose `drupalRoot` is valid inside that container. It serves the route-per-operation Legacy REST API on port 8080 by default, bound to `127.0.0.1` unless configured otherwise. A container port mapping alone does not change the listener binding.
 
-- Health probe can call `/health`.
-- Since endpoints are GET and mostly inspection-oriented, deployment is stateless apart from in-memory cache.
-- Logs are console-based; operation timing/status is emitted from server operation wrapper.
+This REST API is not Streamable HTTP MCP. It has no authentication. Treat it as local-only unless an independently designed authenticated deployment is added. The Legacy DriftCore action-STDIO adapter remains available through `start:stdio:legacy` for existing consumers.
 
-## Unknowns / confirmation files if needed
+## Operational checks
 
-- CI/CD pipeline details: would need `.github/workflows/*` or external build system config.
-- Kubernetes/Compose production topology: would need deployment manifests (not present).
-- Secret management strategy: would need env/config management docs outside current repo.
-
-## Assumptions
-
-- Deployment guidance is based on what is checked into the repository only.
-- No production hardening (auth/TLS/reverse proxy) is inferred unless configured externally.
+The REST `/health` route reports configuration, binary availability and capability flags. It is not an MCP health endpoint. Operation timing/status logs come from the shared server state. The repository has a GitHub Actions CI workflow for lint, build and unit tests; the HTTP and packed consumer integrations are run locally for this migration. No Kubernetes/Compose production topology or remote authorization system is defined here.

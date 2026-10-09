@@ -1,65 +1,34 @@
-# CODEBASE_MAP
+# Codebase map
 
-- **What this repo is**
-  - DriftCore is currently an experimental MCP server focused on giving agents read-only, structured insight into a single Drupal project (project manifest + Drush/Composer inspection tools).
-  - The implementation that exists in this repository is centered in `packages/server`.
-- **Top-level layout**
-  - `packages/server/`: TypeScript Node.js server package (runtime code, tests, Dockerfile, package scripts).
-  - `rfcs/`: product/architecture RFCs (not runtime code).
-  - `specs/`: product specs and acceptance criteria documents.
-  - `README.md`: project-level positioning and roadmap.
+The implemented runtime is `packages/server`, a TypeScript Node.js package for a single local Drupal project. Its primary external interface is Standard MCP STDIO. It exposes four connected-project resources, seven read-only tools, and nine guarded preview/apply/verify tools. Legacy REST and custom action-STDIO adapters remain for compatibility.
 
-## Main runtime entrypoints
+## Entry points and composition
 
-- **HTTP binary entrypoint**: `packages/server/src/bin/http.ts`
-  - Parses `--port` with `yargs`, creates server, starts HTTP transport.
-- **STDIO binary entrypoint**: `packages/server/src/bin/stdio.ts`
-  - Creates server and starts STDIO transport.
-- **Server composition root**: `packages/server/src/index.ts`
-  - Loads config, registers resources/tools, wraps operations with logging, exposes `handleHttp` and `handleStdio`.
+| File | Role |
+| --- | --- |
+| `packages/server/src/bin/mcp.ts` | `driftcore` MCP executable, CLI and SDK STDIO transport |
+| `packages/server/src/mcp/server.ts` | Register four resources and sixteen tools |
+| `packages/server/src/serverState.ts` | Config, binaries, catalogs and operation logging shared by adapters |
+| `packages/server/src/bin/http.ts` | Legacy REST entry point and host/port arguments |
+| `packages/server/src/bin/legacyStdio.ts` | Legacy action-STDIO entry point |
+| `packages/server/src/index.ts` | `createMCPServer()` compatibility API for legacy adapters |
 
-## Organization inside `packages/server/src`
+`src/config.ts` validates config and defaults; `src/projectRoot.ts` handles consumer discovery and conventional Drupal roots. `src/types.ts` defines shared response envelopes. The manifest schema version is `0.2.0`.
 
-- `bin/`: executable CLIs (`http.ts`, `stdio.ts`).
-- `transports/`: protocol adapters
-  - `http.ts`: GET routes (`/health`, `/resources`, `/tools`, `/project-manifest`, `/drush/*`, `/composer/*`).
-  - `stdio.ts`: JSON line actions (`resources`, `tools`, `project_manifest`, etc.).
-- `features/`: business logic
-  - `projectManifest.ts`: builds `project_manifest` resource payload.
-  - `drushTools.ts`: `drift.drush_status`, `drift.drush_pml` execution + normalization.
-  - `composerTools.ts`: `drift.composer_info`, `drift.composer_outdated`.
-  - `config.ts`: config loading/defaulting/validation.
-  - `sandboxExecution.ts`: CLI process runner and concurrency controls.
-  - `errorMapping.ts`, `cache.ts`, `projectPaths.ts`, `schemaResources.ts`, `sdkGeneration.ts` (stub).
-- `__tests__/`: node test suites for manifest parsing, tool parsing, schema/tool registration, non-write guarantees.
-- `integration/smoke.ts`: HTTP smoke test.
+## Where to change behavior
 
-## Where to make changes
+- Standard MCP resource names and mappings: `src/mcp/resources.ts`.
+- Standard MCP tool names and mappings: `src/mcp/readTools.ts` and `src/mcp/writeTools.ts`.
+- Strict input schemas: `src/mcp/toolSchemas.ts`; result adaptation: `src/mcp/resultAdapter.ts`.
+- Legacy REST routes: `src/transports/http.ts`.
+- Legacy JSON action dispatch: `src/transports/legacyStdio.ts`.
+- Drupal project discovery and facts: `src/features/projectManifest.ts`, `projectModules.ts`, `projectConfigLayout.ts`, `projectChecks.ts`, `projectTruth.ts` and `projectPaths.ts`.
+- Drush and Composer adapters: `src/features/drushTools.ts`, `composerTools.ts`.
+- Guarded write workflows: `src/features/workflows/`.
+- CLI execution, timeouts and concurrency: `src/features/sandboxExecution.ts`.
 
-- **Routing / external API surface**
-  - HTTP routes: `packages/server/src/transports/http.ts`
-  - STDIO actions: `packages/server/src/transports/stdio.ts`
-  - Tool/resource registration list: `packages/server/src/index.ts`
-- **Data models / response shapes / contracts**
-  - Shared types and response envelopes: `packages/server/src/types.ts`
-  - Resource schema payload template: `packages/server/src/features/schemaResources.ts`
-- **Domain logic**
-  - Drupal manifest discovery: `packages/server/src/features/projectManifest.ts`
-  - Drush adapters: `packages/server/src/features/drushTools.ts`
-  - Composer adapters: `packages/server/src/features/composerTools.ts`
-- **Infra/runtime execution**
-  - Config handling/defaults/validation: `packages/server/src/config.ts`
-  - Child process execution + timeout + parallelism: `packages/server/src/features/sandboxExecution.ts`
-  - Container runtime packaging: `packages/server/Dockerfile`
-- **Tests**
-  - Unit tests for tool parsing/behavior: `packages/server/src/__tests__/cliTools.test.ts`
-  - Non-write invariant: `packages/server/src/__tests__/cliTools.nonwrite.test.ts`
-  - Manifest behavior: `packages/server/src/__tests__/projectManifest.test.ts`
-  - Route-level smoke test: `packages/server/src/integration/smoke.ts`
-- **UI**
-  - No UI frontend code exists in the current tree; this repo currently exposes MCP over HTTP/STDIO only.
+`schemaResources.ts` contains legacy static templates, not connected-project MCP resources. `sdkGeneration.ts` and `executeInSandbox` are stubs. `packages/agent-runner` is deferred.
 
-## Assumptions
+## Verification and supporting files
 
-- This map assumes only currently tracked files are in scope (no hidden submodules/worktrees).
-- There is no CI workflow config checked in right now; if CI exists externally, that is not visible from this repository contents.
+Tests live in `packages/server/src/__tests__`. Legacy HTTP smoke is `src/integration/smoke.ts`. Packed-tarball SDK consumer proof is `src/integration/packedMcpSmoke.ts`. The package Dockerfile still launches Legacy REST. `.github/workflows/ci.yml` runs lint, build and unit tests on Node 20. The root README documents installation and the full public MCP surface.
