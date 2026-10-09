@@ -14,6 +14,7 @@
     "prepack": "npm run build",
     "pack:check": "npm run build && npm pack --dry-run",
     "integration:mcp": "npm run build && node dist/integration/packedMcpSmoke.js",
+    "integration:inspector": "npm run build && node dist/integration/inspectorSmoke.js",
     "start:http:legacy": "node dist/bin/http.js"
   },
   "dependencies": {

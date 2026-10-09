@@ -11,11 +11,11 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const execute = promisify(execFile);
 const packageRoot = fileURLToPath(new URL("../../", import.meta.url));
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const expectedResources = [
+export const expectedResources = [
   "driftcore://project/manifest", "driftcore://project/modules",
   "driftcore://project/config-layout", "driftcore://project/checks",
 ].sort();
-const expectedTools = [
+export const expectedTools = [
   "drift_drush_status", "drift_drush_pml", "drift_composer_info",
   "drift_composer_outdated", "drift_upgrade_assessment",
   "drift_config_drift_assessment", "drift_scaffold_plan",
@@ -98,7 +98,9 @@ async function proveConsumer(executable: string, projectRoot: string, cwd: strin
   }
 }
 
-export async function runPackedMcpSmoke(): Promise<void> {
+export async function runPackedMcpSmoke(
+  acceptance?: (executable: string, projectRoot: string, cwd: string) => Promise<void>,
+): Promise<void> {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "driftcore-packed-"));
   try {
     const packed: unknown = JSON.parse(await npmCommand([
@@ -136,6 +138,7 @@ export async function runPackedMcpSmoke(): Promise<void> {
     }));
     await proveConsumer(executable, projectRoot, consumer, ["--project-root", projectRoot]);
     await proveConsumer(executable, projectRoot, nested, []);
+    await acceptance?.(executable, projectRoot, consumer);
     console.info("Packed MCP consumer smoke passed: installed executable, 4 resources, 16 tools, manifest, read-only call, CLI root and upward discovery, protocol-only stdout, exit 0.");
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });

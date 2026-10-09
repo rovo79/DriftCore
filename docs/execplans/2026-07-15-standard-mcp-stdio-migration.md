@@ -1479,7 +1479,7 @@ git commit -m "docs: make packaged MCP usage the primary workflow"
 - Modify: `docs/execplans/2026-07-15-standard-mcp-stdio-migration.md`
 - No production changes unless a verified acceptance failure requires a fix
 
-- [ ] **Step 1: Run the complete verification matrix**
+- [x] **Step 1: Run the complete verification matrix**
 
 ```bash
 npm --prefix packages/server ci
@@ -1523,7 +1523,7 @@ shutdown is clean
 
 Record the exact Inspector command and observed results in the Progress Log.
 
-- [ ] **Step 3: Inspect stdout discipline**
+- [x] **Step 3: Inspect stdout discipline**
 
 Run the executable under an MCP client and confirm:
 
@@ -1534,7 +1534,7 @@ diagnostic logs go to stderr
 
 Any ordinary log line on stdout is a release blocker.
 
-- [ ] **Step 4: Inspect the tarball**
+- [x] **Step 4: Inspect the tarball**
 
 ```bash
 npm --prefix packages/server pack --dry-run
@@ -1549,7 +1549,7 @@ README and license are present
 package does not include local config, fixtures, secrets, or generated tarballs
 ```
 
-- [ ] **Step 5: Review scope discipline**
+- [x] **Step 5: Review scope discipline**
 
 Confirm that the diff does not contain:
 
@@ -1566,7 +1566,7 @@ generated SDK
 unrelated domain refactor
 ```
 
-- [ ] **Step 6: Update the plan Progress Log**
+- [x] **Step 6: Update the plan Progress Log**
 
 Record:
 
@@ -1720,12 +1720,13 @@ Task 8: Added strict CLI parsing, project-root precedence, upward Drupal project
 Task 9: Packaged @driftcore/server 0.2.0 with the driftcore executable, Node >=20 metadata, a build-on-prepack hook, usable package README, and the MIT license declared by the root README. Standard start/start:mcp and explicit start:stdio:legacy scripts are present; start:http remains compatible. npm executable symlinks now pass the import-safe entrypoint guard. The smoke test lives under src/integration to match tsconfig rootDir; it installs the tarball into a clean temporary consumer with production dependencies only and no install scripts, then checks exact resources/tools, selected-project manifest and composer metadata, CLI-root and nested upward-discovery launches, protocol-only stdout, operational stderr, and unsignaled exit 0 after EOF. SDK process observation is confined to the integration harness. The final tarball contains 44 files and excludes source, compiled tests, integration harnesses, and node_modules. Review Gate 9: clean npm ci, lint, explicit build, 122 tests (0 failures), legacy HTTP integration, pack:check, and integration:mcp all passed on Linux with Node 24.19.0/npm 11.9.0. No tarballs or temporary consumers remain. Tasks 10-12, including MCP Inspector validation and real-project acceptance, remain pending; the PR remains draft and is not ready to merge.
 Task 10: Renamed the custom STDIO entry point and dispatcher to legacyStdio.ts; updated imports and compatibility test labels. start:stdio:legacy now launches the renamed executable; start:http was renamed to start:http:legacy. HTTP help and operational logs explicitly describe legacy REST, and custom STDIO logs identify the legacy action protocol. Existing createMCPServer, routes, actions, envelopes, and guarded workflow behavior remain unchanged. Added docs/decisions/standard-mcp-stdio.md with primary SDK/STDIO choice, deferred backends/publication, and legacy removal criteria. Builds clear dist before compilation, and packed proof requires renamed files while rejecting obsolete compiled paths. Package README commands match the renamed scripts. Review Gate 10: clean npm ci, lint, explicit build, all 123 tests (0 failures), legacy HTTP integration, and packed MCP consumer proof passed. An additional subprocess check exposed a pre-existing feedback loop in the legacy executable: readline.write fed responses into the input parser. Independently reproduced on the pre-Task-10 executable, then fixed with a separate stdout writer and an injected writer for mock tests. The new real-subprocess regression proves consumer Composer metadata and exit 0 after EOF. CHANGELOG.md records the command renames and output fix. Additional checks proved the renamed HTTP npm command reports legacy REST help and exits 0. Seeding both obsolete compiled filenames and rebuilding proved they are removed. Tasks 11-12 remain pending; PR stays draft.
 Task 11: Replaced root and package README installation guidance with the future published npx model and the currently proven tarball route. Documented all four resource URIs, sixteen MCP tools, strict scaffold/apply inputs, preview/apply/verify, CLI precedence, Node >=20, and explicit Legacy REST/action-STDIO compatibility. Updated architecture, commands, deployment, testing, security, codebase map, hotspot paths, and AGENTS.md to match the current runtime. Added a documentation test that verifies referenced npm scripts and the nine required command names. Review Gate 11: lint, build, all 124 tests (0 failures), legacy REST integration, pack:check, and the packed MCP consumer smoke passed. The smoke verified installed executable, four resources, sixteen tools, project manifest, read-only call, CLI root and upward discovery, protocol-only stdout, and clean exit. npm used a writable temporary cache for package checks because the environment's default /root/.npm cache is read-only. Task 12's MCP Inspector and real-project acceptance remain pending; PR remains draft.
-Final commit:
-Final test count:
-Packed tarball:
-MCP Inspector result:
-Accepted deviations:
-Follow-on issues:
+Task 12 (partial, 2026-10-09): Remote PR #9 still pointed to 11d490e with no comments/reviews. Reused clean local Task 11 commit 266aa5f as the base rather than recreating it. Added integration:inspector and an integration-only packed-consumer callback; no production behavior or dependencies changed. Clean npm ci, lint, explicit build, all 124 tests (0 failures), legacy HTTP integration, pack:check, and packed SDK proof passed on Linux Node 24.19.0/npm 11.9.0. Inspector 2.10.1 was installed externally with scripts disabled. Exact invocation: npm --prefix packages/server run integration:inspector -- /tmp/driftcore-inspector/node_modules/.bin/mcp-inspector. Eight Inspector CLI processes exited 0 after initialization: resources/list (exact four), tools/list (exact sixteen), resources/read for each URI, tools/call drift_upgrade_assessment, and tools/call drift_cache_rebuild_preview. Manifest/checks/config-layout returned ok; modules and upgrade assessment returned degraded with missing Drush/Composer, honestly preserving fixture limitations. Preview returned a nonempty token and future expires_at. No apply ran. Separate SDK subprocess checks proved protocol-only stdout, operational stderr, unsignaled EOF exit 0. Artifact driftcore-server-0.2.0.tgz contained required executable/README/license and excluded source/tests/integration/node_modules/obsolete legacy filenames; temporary artifacts cleaned. Inspector CLI is not an accepted deviation replacing the manual web UI requirement. No real Drupal composer.json/lock was found in available scratch or workspace/var; PHP, Composer, and Drush commands were unavailable. Real-project acceptance and manual web UI remain pending. Node 20 not locally exercised; no follow-on issues created; legacy transports retained; deferred backends, Streamable HTTP, and registry publication untouched. PR remains draft, not ready to merge. See docs/ai/TESTING.md for repeatable CLI and remaining acceptance procedure.
+Final commit: Task 12 validation commit (git log); final migration closeout remains pending.
+Final test count: 124 passed, 0 failed on the available runtime.
+Packed tarball: driftcore-server-0.2.0.tgz; temporary artifact cleaned after consumer validation.
+MCP Inspector result: Inspector 2.10.1 CLI passed; manual web UI pending.
+Accepted deviations: none; CLI does not close the manual acceptance gate.
+Follow-on issues: none created; remaining acceptance and deferred work recorded above.
 ```
 
 ---
